@@ -1,4 +1,4 @@
-# AI Brain OS · Lieferstand 1
+# AI Brain OS · Lieferstand 2
 
 Lokale, ausschließlich lesende Ansicht eines Markdown-Gedächtnisses: Ordnernavigation, Notizen mit Metadaten, Volltextsuche, Wikilinks und Markdown-Links, Rückverweise und Übersicht offener Verknüpfungen. Der Index lebt nur im Arbeitsspeicher. Keine Datenbank, keine Kopie des Gedächtnisses, kein externer Dienst.
 
@@ -12,6 +12,32 @@ npm start
 ```
 
 `npm start` kompiliert TypeScript und startet die Anwendung unter **http://127.0.0.1:3210**. Die Bindung ist fest auf `127.0.0.1` beschränkt. Zum Beenden `Ctrl+C`. Kein Remote und keine globale Installation erforderlich. `http://localhost:3210` ist ebenfalls möglich. Host und Port müssen exakt einem dieser beiden Einstiege entsprechen; eine mitgesendete Herkunft muss zum jeweiligen Einstieg passen.
+
+## Zugang nach Anmeldung am Mac
+
+Als angemeldeter Benutzer im Anwendungsordner einmalig einrichten:
+
+```bash
+node scripts/access.mjs install
+```
+
+Das Skript führt `npm ci` und den Build aus, legt einen Benutzer-LaunchAgent unter `~/Library/LaunchAgents/io.github.ai-brain-os.local.plist` und die Dock-App unter `~/Applications/AI Brain OS.app` an und fügt sie dem Dock hinzu. Der Dienst startet bei der Anmeldung und wird nach Prozessende neu gestartet. Die App öffnet die lokale Oberfläche mit einem Klick. Wenn sie den Dienst nicht erreicht, zeigt sie einen Dialog mit einem Hinweis. Ein bereits belegter konfigurierter Port führt zum Abbruch; einen vorhandenen Server beendet das Skript nicht. Vor der Einrichtung einen manuell gestarteten `npm start` selbst beenden.
+
+Nach Codeänderungen aktualisieren (Build und Dienstneustart):
+
+```bash
+node scripts/access.mjs update
+```
+
+Nach einer Änderung von `config.local.json`, insbesondere des Ports, erst entfernen und neu einrichten, damit Dock-App und Dienst dieselbe Adresse verwenden. Vollständig ausbauen:
+
+```bash
+node scripts/access.mjs uninstall
+```
+
+Der Ausbau stoppt den Dienst und entfernt LaunchAgent, Dock-Eintrag, App und Protokolle. Er verändert keine Gedächtnisdatei. Das Fehler- und Startprotokoll steht in `~/Library/Logs/AI Brain OS/server.log`, die vorige Generation in `server.log.1`; beide sind auf je 1 MiB begrenzt. Für die Einrichtung sind weder Homebrew noch Xcode nötig; die macOS-Werkzeuge `launchctl`, `osacompile`, `plutil` und `defaults` reichen. Node muss am selben Pfad verfügbar bleiben, mit dem installiert wurde. Bleibt die Oberfläche unerreichbar, helfen `launchctl print gui/$(id -u)/io.github.ai-brain-os.local`, das Protokoll und `lsof -nP -iTCP:3210 -sTCP:LISTEN`.
+
+Die Anmeldung, ein echter Neustart, hartes Beenden des Serverprozesses, Ruhezustand/Aufwachen, Dock-Darstellung und die 30-/10-Sekunden-Grenzen müssen auf dem Mac geprüft werden. Ein Neustart des Mac erfolgt nur mit Bastis Zustimmung. Wenn ein vorhandener manueller Server auf Port 3210 läuft, erst nach dessen geplantem Beenden einrichten.
 
 ## Konfiguration
 

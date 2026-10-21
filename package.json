@@ -10,7 +10,7 @@
     "build": "tsc",
     "start": "npm run build && node dist/src/main.js",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test dist/tests/*.test.js",
+    "test": "npm run build && node --test dist/tests/*.test.js tests/*.test.mjs",
     "check:lsp": "node scripts/language-check.mjs"
   },
   "dependencies": {
