@@ -6,6 +6,7 @@ import path from 'node:path';
 import { Vault } from '../src/vault.js';
 import { createHandler, localOrigin } from '../src/server.js';
 import { defaultExcludes, loadConfig } from '../src/config.js';
+import { faviconFromSource } from '../src/favicon.js';
 
 const origin = 'http://127.0.0.1:3210';
 async function fixture() {
@@ -68,8 +69,16 @@ test('A3/G2: lokale Schriftdateien und restriktive CSP', () => use(async ({ hand
   assert(!(await page.text()).includes('https://'));
 }));
 
-test('F-1/F-3/F-4: lokales Chip-Hirn-Favicon mit unverändertem Hostschutz und CSP', () => use(async ({ handler }) => {
+test('F-1/F-3/F-4/T-1/T-3: randloses lokales Favicon; macOS-Iconquelle bleibt unverändert', () => use(async ({ handler }) => {
   const source = await readFile(path.resolve('assets/icon-chip-hirn.svg'), 'utf8');
+  const dockBuilder = await readFile(path.resolve('scripts/build-icon.swift'), 'utf8');
+  const dockSetup = await readFile(path.resolve('scripts/access.mjs'), 'utf8');
+  assert.match(source, /viewBox="0 0 1024 1024"/);
+  assert.match(dockBuilder, /NSImage\(contentsOf: source\)/);
+  assert.match(dockSetup, /icon-chip-hirn\.svg/);
+  const cropped = faviconFromSource(source);
+  assert.match(cropped, /viewBox="100 100 824 824"/);
+  assert.equal(cropped.replace('viewBox="100 100 824 824"', 'viewBox="0 0 1024 1024"'), source);
   for (const host of ['127.0.0.1:3210', 'localhost:3210']) {
     const local = `http://${host}`;
     const request = (route: string, headers: Record<string, string> = {}) => handler(new Request(local + route, { headers: { Host: host, ...headers } }));
@@ -81,10 +90,11 @@ test('F-1/F-3/F-4: lokales Chip-Hirn-Favicon mit unverändertem Hostschutz und C
     assert.equal(favicon.headers.get('content-type'), 'image/svg+xml');
     assert.equal(favicon.headers.get('content-security-policy'), page.headers.get('content-security-policy'));
     assert.equal(favicon.headers.get('x-content-type-options'), 'nosniff');
-    assert.equal(await favicon.text(), source);
+    assert.equal(await favicon.text(), cropped);
     assert.equal((await request('/favicon.svg', { Host: 'evil.test:3210' })).status, 403);
     assert.equal((await request('/favicon.svg', { Origin: 'https://evil.test' })).status, 403);
   }
+  assert.equal(await readFile(path.resolve('assets/icon-chip-hirn.svg'), 'utf8'), source);
 }));
 
 test('E2: Navigation entspricht unabhängig festgelegter sichtbarer Dateiliste', () => use(async ({ vault, files }) => {

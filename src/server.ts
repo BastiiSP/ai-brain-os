@@ -3,6 +3,7 @@ import path from 'node:path';
 import { graphFromIndex } from './graph.js';
 import { Vault } from './vault.js';
 import { MAX_REQUEST_BYTES, SettingsError, SettingsStore } from './settings.js';
+import { faviconFromSource } from './favicon.js';
 
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const headers = { 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' };
@@ -93,7 +94,9 @@ export function createHandler(vault: Vault, base = process.cwd(), settings = new
       }
       if (assets[url.pathname]) {
         const [file, type] = assets[url.pathname]!;
-        return new Response(new Uint8Array(await readFile(path.join(base, file))), { headers: { ...headers, 'Content-Type': type } });
+        const bytes = await readFile(path.join(base, file));
+        const body = url.pathname === '/favicon.svg' ? faviconFromSource(bytes.toString('utf8')) : bytes;
+        return new Response(typeof body === 'string' ? body : new Uint8Array(body), { headers: { ...headers, 'Content-Type': type } });
       }
       return json({ error: 'Nicht gefunden.' }, 404);
     } catch (error) { return json({ error: error instanceof SettingsError ? error.message : 'Nicht verfügbar. Bitte aktualisieren; Gedächtnispfad, Berechtigungen und Größenlimit prüfen.' }, error instanceof SettingsError ? error.status : 422); }
