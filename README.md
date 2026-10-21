@@ -1,6 +1,6 @@
-# AI Brain OS · Lieferstand 4
+# AI Brain OS · Lieferstand 5
 
-Lokale, ausschließlich lesende Ansicht eines Markdown-Gedächtnisses: Ordnernavigation, Notizen mit Metadaten, Volltextsuche, Wikilinks und Markdown-Links, Rückverweise und Übersicht offener Verknüpfungen. Der Index lebt nur im Arbeitsspeicher. Keine Datenbank, keine Kopie des Gedächtnisses, kein externer Dienst.
+Lokale Ansicht eines Markdown-Gedächtnisses mit persönlichen Navigationseinstellungen: Ordnernavigation, Notizen mit Metadaten, Volltextsuche, Wikilinks und Markdown-Links, Rückverweise und Übersicht offener Verknüpfungen. Notizen und Anhänge bleiben unverändert; ausschließlich die Navigationseinstellungen werden in einer versteckten Datei gespeichert. Der Index lebt nur im Arbeitsspeicher. Keine Datenbank, keine Kopie des Gedächtnisses, kein externer Dienst.
 
 ## Einrichtung und Start
 
@@ -118,7 +118,7 @@ Die Anwendung ist für Bastis vertrauenswürdiges lokales Dateisystem gedacht. P
 
 Ziehen dreht die Kamera, Scrollen/Trackpad zoomt, Klick auf einen Chip öffnet die Karte. Pfeiltasten und +/− bedienen die Kamera ebenfalls; die Notizauswahl unter dem Raum ist per Tastatur erreichbar. „Kamera zurücksetzen“ stellt den Überblick her. Bei fehlendem WebGL bleibt die Faktenansicht über den vorhandenen Umschalter erreichbar.
 
-- Ein Chip je indexierter Notiz. Ein Sockel je sichtbarem Hauptordner, zusätzlich „Wurzel“ für Notizen ohne Ordner. Nummern im Ordnernamen bleiben erhalten, ansonsten erhalten Sockel eine Anzeigezahl. Die Ordnerpalette wird aus Türkis und Pink des aktuellen Farbmodus abgeleitet. Mehr verknüpfte Chips sind größer; bei maximaler Chipbreite 6 bleiben mindestens 4 Welteinheiten Abstand zwischen Chips.
+- Ein Chip je indexierter, nicht über die Navigation ausgeblendeter Notiz. Ein Sockel je sichtbarem Hauptordner, zusätzlich „Wurzel“ für Notizen ohne Ordner. Nummern im Ordnernamen bleiben erhalten, ansonsten erhalten Sockel eine Anzeigezahl. Die gewählten Ordnerfarben gelten auch im Raum; Unterordner werden je Ebene weniger kräftig. Sockel verwenden dieselbe Grundfarbe mit zurückgenommener Intensität, damit Chips sichtbar abgesetzt bleiben. Mehr verknüpfte Chips sind größer; bei maximaler Chipbreite 6 bleiben mindestens 4 Welteinheiten Abstand zwischen Chips.
 - Eine Bahn je ungeordnetem Paar verschiedener Notizen mit mindestens einem eindeutig aufgelösten Link. Wiederholungen, Gegenrichtung und Selbstverweise erzeugen keine zusätzliche Bahn. Aufgelöste Links auf Anhänge/Ordner erscheinen als einzeln gezählte Linkvorkommen in der Karte. Nicht aufgelöste und mehrdeutige Links erscheinen dort nicht.
 - Bahnen laufen rechtwinklig über eigene Höhen und getrennte Anschlusspunkte innerhalb der Chipoberfläche. Überkreuzungen sind möglich; gemeinsame Streckenabschnitte sind ausgeschlossen. Die Tests prüfen die tatsächliche Float32-Genauigkeit der Renderkoordinaten, auch mit 2.000 Notizen/4.000 Bahnen und einem Hub mit 1.999 Nachbarn. Bei Hover und Auswahl werden die zugehörigen Bahnen farbig hervorgehoben, die übrigen zum Hintergrund hin gedimmt.
 - Notizen unter `05 Daily Notes/` erscheinen blass. Der Schalter blendet ihre Chips und verbundenen Bahnen aus; die Zähler zeigen dargestellte und gesamte Mengen.
@@ -163,3 +163,31 @@ node scripts/room-profile.mjs
 ```
 
 Das Skript erzeugt ein eigenes erfundenes Gedächtnis, durchläuft den normalen Index und misst fünfmal Graphprojektion, Layout und Positionspuffer (32.000 Vertices). Es entfernt seine Daten auch bei Fehlern. DOM, GPU-Upload, Shader, Instanzmatrizen und erster Browserframe sind darin nicht enthalten. Diese Messung kann die Zwei-Sekunden-Grenze im Browser nicht bestätigen.
+
+
+## Persönliche Navigation (Lieferstand 5)
+
+Unter „Dein Gedächtnis“ **Anpassen** wählen. Jede Änderung wird unmittelbar gespeichert; „Gespeichert“ bestätigt den Abschluss. Ohne eine Änderung wird keine Einstellungsdatei angelegt.
+
+- Hauptordner haben vier wählbare Farben: Türkis, Pink, Malve und Grautürkis. Ohne Auswahl gilt Türkis. Unterordner erhalten je Ebene automatisch weniger kräftige Töne. Die Textfarbe bleibt für Lesbarkeit unabhängig davon. Dieselbe Grundfarbe steuert die Chips und Sockel im Raum; die bestehende blasse Darstellung der Tagesnotizen bleibt erhalten.
+- Ordner und Dateien lassen sich ausblenden, einschließlich Notizen direkt an der Wurzel. Das gilt rekursiv in Navigation, Ordnerlisten und Raum. **Ausgeblendete zeigen** macht die Einträge zur Verwaltung wieder sichtbar; „Einblenden“ hebt ihre eigene Ausblendung auf. Bei einem ausgeblendeten Elternordner muss auch dieser eingeblendet werden. Suche, Notizinhalte, Links und direkte Dateiabrufe bleiben erreichbar. Ausblenden ist keine Zugriffssperre.
+- Die Zahl am Ordner zählt alle indexierten Notizen in seinen Unterordnern einschließlich ausgeblendeter Notizen; Anhänge zählen nicht mit.
+- Am Griff **↕** innerhalb desselben Ordners ziehen oder die Schaltflächen **↑/↓** per Tab und Eingabetaste nutzen. Am Griff funktionieren auch **Alt+Pfeil oben/unten**. Ordner werden dabei nicht verschoben oder umbenannt. Neue Einträge folgen den bekannten; bei mehreren neuen gilt alphabetische Reihenfolge. Vor der ersten Speicherung wird die bekannte Reihenfolge nur innerhalb der geöffneten Seite erhalten, danach zusammen mit jeder Einstellung dauerhaft gespeichert.
+- **Anheften** stellt eine Notiz an den Anfang der Navigation. Pins lassen sich ebenfalls sortieren und lösen. Eine umbenannte oder gelöschte Notiz bleibt am exakt gespeicherten Pfad als **nicht gefunden** stehen. Es gibt keine automatische Zuordnung zu gleichnamigen Notizen. Ausblenden gilt auch für Pins; „Ausgeblendete zeigen“ macht diese wieder sichtbar.
+- **Aktualisieren** und **Einstellungen neu laden** lesen Bestand und Einstellungsdatei neu. Bei einem Speicherkonflikt bleibt die fremde Fassung erhalten. Nach dem Neuladen die gewünschte Änderung erneut vornehmen; eine automatische Zusammenführung findet nicht statt.
+
+### Speicherformat und Schreibgrenze
+
+`src/settings.ts` kapselt sämtliche Gedächtnisschreibzugriffe. Die einzige Zieldatei ist `.ai-brain-os/einstellungen.json`. Der Ordner darf beim ersten Speichern entstehen. Der normale Wissensindex und alle allgemeinen Datei-/Linkendpunkte schließen diesen versteckten Pfad weiterhin aus. `GET /api/settings` liefert die geprüften aktuellen Einstellungen und einen Revisionswert. `PUT /api/settings` akzeptiert ausschließlich `{current, revision}`, JSON, den vorhandenen lokalen Host-/Herkunftsschutz und `X-Brain-Request: 1`. Weder URL-Parameter noch zusätzliche Zielpfade sind zulässig.
+
+Die Datei enthält `{version: 1, current: {...}, previous: {...} | null}`. `current` und `previous` haben jeweils die Felder `colors`, `hidden`, `order` und `pinned`. Die Sicherung enthält genau den vorigen gültigen Einstellungsstand ohne weitere verschachtelte Historie. Grenzen: **128 KiB** je Einstellungsstand, **257 KiB** für die ganze Datei und **129 KiB** für den Anfrageinhalt; begrenzte Pfadlängen und Listen kommen hinzu. Unbekannte Versionen/Felder, defekte Daten, übergroße Dateien, Symlinks und Hardlinks sperren das Speichern mit Hinweis. Die Datei bleibt erhalten; zum Lesen der Anwendung gelten vorübergehend die Standardeinstellungen. Erst nach manueller Bereinigung neu laden. Das Revisionsmerkmal berücksichtigt Dateiidentität, Änderungszeiten und Inhalt; vor dem Austausch wird erneut verglichen.
+
+Temporäre Dateien entstehen ausschließlich in **`.settings-work/` im Anwendungsordner**, der in Git ignoriert und mit Modus 0700 angelegt wird. Die Datei wird exklusiv mit 0600 erstellt, vollständig geschrieben, mit `fsync` synchronisiert und nach erneuter Prüfung atomar zum festen Ziel verschoben. Der Zielordner wird anschließend synchronisiert; beim erstmaligen Anlegen auch sein Elternordner. Unterschiedliche Dateisysteme werden abgewiesen. Beim Start werden dort temporäre Dateien beendeter Prozesse entfernt; Dateien laufender Prozesse bleiben erhalten. Ein Prozessabbruch hinterlässt keine temporäre Datei im Gedächtnis. Die Anwendung führt keine Git-Operationen aus.
+
+Das vorhandene Schutzmodell eines vertrauenswürdigen lokalen Dateisystems bleibt maßgeblich: Der abschließende Vergleich und `rename` erfolgen synchron ohne dazwischenlaufende Anwendungsanfrage. Gegen einen unabhängigen lokalen Prozess, der genau zwischen diesen Betriebssystemaufrufen schreibt oder Verzeichnisse austauscht, besteht keine transaktionale Dateisystemsperre. Normale externe Änderungen seit dem Laden sowie Änderungen während der Vorbereitung werden erkannt. Ein physischer Stromausfall wurde nicht getestet. Die integrierte vorige Fassung ist eine Rückfallmöglichkeit bei gültiger Datei; eine Wiederherstellung erfolgt bei Bedarf manuell, nicht über einen zusätzlichen Schreibendpunkt.
+
+### Nachweise und noch notwendige Abnahme
+
+`tests/settings.test.ts` ergänzt die bisherigen Tests um Manifestvergleiche, protokollierte Schreibziele, Schema-/Größengrenzen, fremde Revisionen, Symlinks, Hardlinks, Synchronisierungs- und Dateisystemfehler, einen abrupt beendeten eigenen Testprozess und anschließende Startbereinigung. Der HTTP-Body-Adapter wird mit gestreamten Daten ohne Netzwerkport geprüft. Weitere Tests prüfen Farbkontrast und Abstufung, Notizanzahlen, Reihenfolge, fehlende Pins und unveränderte Suche/Linkauflösung. Alle Daten liegen ausschließlich unter `.test-work/`.
+
+Keine neuen Abhängigkeiten. Gemeinsame Darstellungsregeln stehen in `src/preferences.ts`, die DOM-basierte Bedienung in `src/navigation.ts`. Sichtprüfung, echtes Drag-and-drop und Tastaturbedienung im Browser, Netzwerktransport, Darstellung/Leistung des 3D-Raums sowie die erste Speicherung im echten Gedächtnis bleiben Aufgaben der unabhängigen Prüfung durch KI A. O10 erfordert Bastis Urteil. Der aktuelle Übergabestand und die eigenen Ergebnisse stehen am Anfang von [HANDOFF.md](HANDOFF.md).

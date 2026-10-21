@@ -16,7 +16,7 @@ export function layoutGraph(graph: Graph): Layout {
     const x = (f % columns - (columns - 1) / 2) * cell;
     const z = (Math.floor(f / columns) - (Math.ceil(groups.length / columns) - 1) / 2) * cell;
     ids.forEach((i, k) => { positions[i] = [x + (k % side - (side - 1) / 2) * 10, 3, z + (Math.floor(k / side) - (side - 1) / 2) * 10]; });
-    return { name: graph.folders[f]!, x, z, size: side * 10 + 6 };
+    return { name: graph.folders[f] || 'Wurzel', x, z, size: side * 10 + 6 };
   });
   // Each incidence has a different x port within its chip. Each edge has a
   // different y layer. Vertical sections therefore cannot coincide; horizontal

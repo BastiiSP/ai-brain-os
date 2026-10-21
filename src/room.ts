@@ -1,9 +1,11 @@
+import { emptyPreferences, folderColor } from './preferences.js';
+import type { Preferences } from './preferences.js';
 import * as T from './three.module.js';
 import type { Graph } from './graph.js';
 import { roomBuffers, isolatedEdge } from './room-data.js';
 import { layoutGraph } from './room-layout.js';
 export interface CameraState { azimuth: number; polar: number; distance: number }
-export function createRoom(graph: Graph, read: (path: string) => void, cameraState: CameraState, started: number) {
+export function createRoom(graph: Graph, read: (path: string) => void, cameraState: CameraState, started: number, preferences: Preferences = emptyPreferences()) {
   const layoutStart = performance.now();
   const layout = layoutGraph(graph);
   const layoutMs = performance.now() - layoutStart;
@@ -72,21 +74,23 @@ export function createRoom(graph: Graph, read: (path: string) => void, cameraSta
   button('Alle zeigen', () => { growthStart = undefined; visible = graph.nodes.length; growthButton.setAttribute('aria-pressed', 'false'); repaint(); });
   button('Kamera zurücksetzen', () => { cameraState.azimuth = -.8; cameraState.polar = .65; cameraState.distance = layout.extent * 1.5; });
   // Folder palette derived from the existing theme tokens; no external assets.
-  let bg = new T.Color(), teal = new T.Color(), pink = new T.Color(); let folderColors: T.Color[] = [];
+  let bg = new T.Color(), teal = new T.Color(), pink = new T.Color(); let folderColors: T.Color[] = []; let nodeColors: T.Color[] = [];
   function theme() {
     const css = getComputedStyle(document.documentElement); const value = (key: string) => css.getPropertyValue(key).trim();
     bg.set(value('--bg')); teal.set(value('--teal')); pink.set(value('--pink'));
-    folderColors = graph.folders.map((_, i) => teal.clone().lerp(pink, i / Math.max(1, graph.folders.length - 1)));
+    const dark = css.colorScheme === 'dark';
+    folderColors = graph.folders.map(p => new T.Color(folderColor(preferences, p, true, dark)));
+    nodeColors = graph.nodes.map(n => { const color = new T.Color(folderColor(preferences, n.path, false, dark)); return n.daily ? color.lerp(bg, .65) : color; });
     sockets.forEach((mesh, i) => { (mesh.material as T.MeshLambertMaterial).color.copy(folderColors[i]!).lerp(bg, .85); });
     (pulses.material as T.PointsMaterial).color.copy(pink); repaint();
   }
   function repaint() {
     const paintStart = performance.now();
     const focus = hover >= 0 ? hover : selected; showNodes = 0; showEdges = 0;
-    graph.nodes.forEach((n, i) => {
+    graph.nodes.forEach((_, i) => {
       const p = layout.positions[i]!, size = shown(i) ? layout.sizes[i]! : 0; if (size) showNodes++;
       matrix.makeScale(size, size ? 2.5 : 0, size); matrix.setPosition(...p); chips.setMatrixAt(i, matrix);
-      const color = folderColors[graph.folders.indexOf(n.folder)]?.clone() ?? teal.clone(); if (n.daily) color.lerp(bg, .65); chips.setColorAt(i, color);
+      chips.setColorAt(i, nodeColors[i] ?? teal);
       if (options[i]!.disabled === shown(i)) options[i]!.disabled = !shown(i);
     });
     chips.boundingSphere = null;

@@ -4,5 +4,6 @@ dist/
 config.local.json
 .test-work/
 .access-work/
+.settings-work/
 .DS_Store
 .codex/

@@ -1,3 +1,94 @@
+# Übergabe Lieferstand 5 · 21.10.2026
+
+**KI B:** Codex, Umsetzung und eigene Prüfung. **KI A:** Claude Code, Planung und unabhängige Prüfung. **Auftraggeber:** Basti.
+
+**Stand:** `main`, Basis `0cd8da04d1f8099414c96bb97b85ad0f82f29cf9`, dazu der uncommittierte Diff und die vier unten aufgeführten neuen Dateien. Kein Commitversuch: `.git` ist laut geltenden Schreibrechten nur lesbar. KI A soll den übergebenen Stand unverändert committen, Codex als Umsetzer nennen und genau diesen Commit prüfen. Kein Push und keine unabhängige Abnahme durch KI B.
+
+## Ziel, Planprüfung und Grenzen
+
+O2–O6 und O8–O10 gemäß Auftrag; O1/O7 entfallen, echte Ordnernamen bleiben erhalten. Den von KI A präzisierten O8-Schreibvertrag erneut gelesen und umgesetzt: eine persistente Einstellungsdatei im Gedächtnis, genau eine vorige gültige Fassung darin, temporäre Datei ausschließlich im ignorierten Arbeitsordner der Anwendung. Kein weiterer wesentlicher Planeinwand nach der Präzisierung.
+
+Keine Änderungen an AGENTS.md/CLAUDE.md, am realen Gedächtnis, an lokaler Konfiguration oder am laufenden Dienst. Kein `launchctl`, kein Aufruf von `scripts/access.mjs`, kein Start eines Anwendungsservers. Alle eigenen Schreibprüfungen verwendeten erfundene Gedächtnisse unter `.test-work/` im Anwendungsordner. Der Absturztest beendet ausschließlich seinen eigenen eigens gestarteten Testprozess. Projekt- und Daily-Notiz im Gedächtnis wurden wegen der Schreibgrenze nicht fortgeschrieben.
+
+## Implementiert und eigene Nachweise
+
+| Kriterium | Umsetzung / eigener Nachweis |
+| --- | --- |
+| O2 | Vier feste, aus der Farbwelt abgeleitete Farben. Automatische Entsättigung je Unterordnerebene; keine freie Unterordnerfarbe. Gemeinsame Berechnung für Navigationsmarken, Sockelgrundfarben und Chips. Kontrast der Marken mindestens 3:1 für alle vier Farben, beide Modi und 20 Ebenen getestet. Textfarben bleiben unverändert. Sichtprüfung offen. |
+| O3 | Rekursive Ausblendung in Baum, Ordnerlisten und Raum, inklusive Wurzelnotizen und Pins. Verwaltungsansicht zum Wiedereinblenden; verwaiste Ausblendungen können entfernt werden. Such-/Linkabgleich bleibt unverändert. Der vollständige Graph-Endpunkt bleibt lesend und ungefiltert; der Raum filtert Chips/Bahnen. |
+| O4 | Anzahl aller indexierten Notizen rekursiv einschließlich ausgeblendeter Notizen, ohne Anhänge; Regel in Oberfläche/README benannt und getestet. |
+| O5 | Drag-Griff, ↑/↓-Schaltflächen und Alt+Pfeil oben/unten am Griff; Sortierung nur unter Geschwistern bzw. innerhalb der Pin-Liste. Gemeinsamer Verschiebealgorithmus geprüft. Neue Einträge nach bekannten; initial alphabetisch. Persistenz nach der ersten expliziten Einstellungsänderung. Browserereignisse noch nicht praktisch geprüft. |
+| O6 | Angeheftete Notizen stehen oben; gespeicherte genaue Pfade bleiben beim Umbenennen/Löschen erhalten. Fehlende Ziele zeigen „nicht gefunden“, kein automatisches Umhängen. Test mit tatsächlicher Umbenennung im Test-Gedächtnis. |
+| O8 | Festes Ziel, Schema v1, Größenlimits, aktueller/voriger Stand; atomarer Austausch über synchronisierte Temp-Datei. Ungültige Dateien gesperrt, Revision vor Austausch erneut geprüft. API mit Host-/Origin-/Cross-Site-/Methoden-/JSON-Schutz. Tests für fremde Änderungen, zwei Browserrevisionen, Symlinks, Hardlinks, defekte/zu große Dateien, Pfad-/Feldinjektion, gestreamte Anfragegröße, fsync-Fehler, Gerätekennung und EXDEV. |
+| O9/G1 | Vollständige Test-Dateimanifeste mit Inhaltshash und Änderungszeit unverändert außerhalb der einen Ausnahme. Schreiboperationen zusätzlich instrumentiert: nur Arbeitsordner/Temp-Datei, Einstellungsordner und festes Ziel. Prozessabbruch nach Temp-fsync plus Neustartbereinigung getestet. Keine Manifestprüfung am realen Gedächtnis in diesem Lauf. |
+| O10 | Offen: Bastis Urteil über Übersichtlichkeit und persönliche Nutzbarkeit. |
+| G2–G6 | Keine Fernressourcen oder neuen Abhängigkeiten. Bisherige Tests einschließlich 2.000-Notizen-/4.000-Paare-Prüfung grün; Loopback-Bindung und Schutzheader erhalten. Bewegung und Tagesnotizschalter erhalten; keine neuen Animationen. README aktualisiert. Sicht-/Leistungsprüfung offen. |
+
+## Geänderte Dateien (vollständig)
+
+| Datei | Änderung |
+| --- | --- |
+| `.gitignore` | `.settings-work/` ignorieren. |
+| `src/settings.ts` **neu** | Ausschließlich fester Einstellungszugriff, Schema-/Integritätsprüfung, atomarer Austausch und Startbereinigung. |
+| `src/preferences.ts` **neu** | Gemeinsames Format, Palette, Abstufung, Ausblendung, Sortierung, Notizzähler und Raumfilter. |
+| `src/navigation.ts` **neu** | DOM-basierte Navigation, Verwaltungsbedienung, Pins, Drag/Keyboard, Rückmeldungen. |
+| `src/server.ts` | Feste Settings-API, begrenztes JSON-Lesen, Einstellungszustand und neue lokale Assets. |
+| `src/http.ts` | Request-Body mit Backpressure und Größenprüfung durch den Handler, Startbereinigung, Anfragetimeout. |
+| `src/client.ts` | Navigation anbinden, Einstellungen laden/speichern/neu laden, Raum invalidieren und filtern. |
+| `src/room.ts` | Gemeinsame gewählte Farbwerte und Tiefenabstufung; bisherige Sockel-/Tagesnotiz-Abschwächung erhalten. |
+| `src/graph.ts` | Eindeutiger interner Schlüssel für Wurzelnotizen statt Kollision mit echtem Ordner „Wurzel“. |
+| `src/room-layout.ts` | Interner Wurzelschlüssel erhält weiterhin die sichtbare Bezeichnung „Wurzel“. |
+| `src/vault.ts` | Echte Ordnernamen auch bei Endung `.md` erhalten; Kommentar zur getrennten Schreibschranke. |
+| `public/index.html` | Hinweistext auf neue Einstellungspersistenz abgestimmt. |
+| `public/style.css` | Navigation, Farbmarken, Verwaltungsbedienung, Fokus-/Ausblendungsdarstellung. |
+| `tests/settings.test.ts` **neu** | 21 zusätzliche Prüfgruppen zu O2–O9, API/HTTP-Body und Fehler-/Abbruchszenarien. |
+| `README.md` | Bedienung, Speicherformat, Grenzen, Architektur, Nachweise und offene Abnahme. |
+| `HANDOFF.md` | Diese Übergabe; ältere Übergaben bleiben unten als Historie erhalten. |
+
+`package.json` und `package-lock.json` bleiben unverändert. Keine neuen direkten oder transitiven Abhängigkeiten: Node-Dateisystemfunktionen reichen für den begrenzten Speicherzugriff; native DOM-/Drag-Ereignisse und das vorhandene Three.js genügen für die Darstellung.
+
+## Befehle und Ergebnisse
+
+Im Anwendungsordner, am hier übergebenen Arbeitsstand:
+
+```bash
+npm run typecheck
+npm test
+npm run check:lsp
+npm audit
+git diff --check
+```
+
+- Typprüfung: erfolgreich, Exitcode 0.
+- Tests: **50/50 bestanden**, keine übersprungenen Tests; Build enthalten. Davon 29 bisherige und 21 neue Prüfgruppen.
+- LSP: **17 TypeScript-Dateien, 0 Diagnosen**, Exitcode 0. `context canceled` ist die bekannte reguläre Shutdown-Meldung.
+- Audit: **0 Schwachstellen**, Exitcode 0. Lockfile unverändert.
+- Diff-Whitespace-Prüfung: erfolgreich.
+- Keine Browser-/GPU-/FPS-Messung. Die portlosen Request- und Streamprüfungen sind kein Nachweis für eine echte Netzwerkverbindung oder tatsächliche Benutzerinteraktion.
+
+## Entscheidungen, kleine Anpassungen und Grenzen
+
+- Sicherung ist der vorige gültige **Einstellungsstand**, nicht eine zusätzliche Datei und keine rekursiv wachsende Historie. Wiederherstellung bei Bedarf manuell; kein zusätzlicher Schreibendpunkt.
+- Limits: 128 KiB pro Einstellungsstand, 257 KiB ganze Datei, 129 KiB Anfrage. Synchroner, größenbegrenzter Speicherabschnitt verhindert das Ineinanderlaufen von Anwendungsanfragen vor dem Austausch. UUID und Prozess-ID im Temp-Namen; Bereinigung entfernt nur Dateien beendeter Prozesse. Eine wiederverwendete PID oder fehlende Berechtigung zur Lebensprüfung kann konservativ einen Rest im Arbeitsordner belassen.
+- Pins behalten exakte Pfadschreibweisen. Es wird keine Normalisierung zur automatischen Neuzuordnung angewandt. Das vorhandene NFC-Verhalten der allgemeinen Lese-API bleibt erhalten.
+- Anzeigen ohne Speichern erzeugt keine Datei. Entdeckungsreihenfolge wird vor der ersten expliziten Änderung nur innerhalb der Browserseite gehalten; danach wird sie mitgespeichert. Neue Einträge werden beim nächsten Speichern Teil der dauerhaften Reihenfolge.
+- Zwei kleine Bestandskorrekturen sind für echte Namen und Wurzel-Ausblendung erforderlich: Ordner mit `.md`-Endung werden nicht mehr gekürzt; ein echter Ordner „Wurzel“ kollidiert intern nicht mehr mit Wurzelnotizen. Beide Fälle sind mit erfundenen Daten geprüft.
+- Sockel verwenden die gewählte Grundfarbe abgeschwächt zum Hintergrund; Tagesnotizen behalten ihre bisherige blasse Darstellung aus Lieferstand 4. Das erhält die Trennung von Sockeln/Chips und R5.
+- Das bestehende vertrauenswürdige lokale Dateisystem bleibt Voraussetzung. Zwischen dem letzten Revisionsvergleich und dem atomaren `rename` gibt es ohne kooperierende externe Schreiber keine Dateisystemtransaktion. Gleichzeitiger fremder Schreibzugriff exakt in diesem kurzen Fenster oder absichtliches fortlaufendes Austauschen von Verzeichnissen wird nicht als ausgeschlossen behauptet. Die normalen Änderungen seit dem Laden und während der Vorbereitung sind geprüft. Physischer Stromausfall ist ungeprüft; Dateisynchronisierung und Prozessabbruch sind getrennte Nachweise.
+
+## Konkrete unabhängige Prüfung durch KI A
+
+1. Diff einschließlich neuer Dateien prüfen (öffentliches Repository), unverändert committen und am exakten Commit Typprüfung, Tests, LSP und Audit wiederholen.
+2. Zunächst mit einem erfundenen Test-Gedächtnis prüfen: zwei Hauptordner, mehrere Ebenen, Wurzelnotizen, Anhang, Pin. In hell/dunkel Farben wählen und 3D vergleichen; einen Ordner, einen Unterordner und eine Wurzelnotiz aus-/einblenden. Suche und direkte Links weiterhin öffnen.
+3. Mit Maus ziehen; mit Tab/Enter die ↑/↓-Schaltflächen sowie Alt+Pfeiltasten am Griff bedienen. Fokus, Reihenfolge nach Aktualisieren und Browserneustart sowie neu hinzugefügten Ordner am Ende prüfen. Pins sortieren; gepinnte Testnotiz außerhalb der Anwendung umbenennen/löschen und „nicht gefunden“ prüfen.
+4. Zwei Browserseiten öffnen: in der ersten speichern, in der zweiten mit alter Revision ändern. Konflikthinweis, erhaltene fremde Datei und explizites Neuladen bestätigen. Defekte/unbekannte Testdatei, Größenlimit und vollständigen HTTP-Transport einschließlich 413 praktisch prüfen.
+5. Nach der unabhängigen Code-/Testprüfung den Dienst selbst aktualisieren. Vor/nach der ersten realen Einstellungsspeicherung vollständiges Gedächtnis-Manifest erfassen: ausschließlich `.ai-brain-os/einstellungen.json` darf als Datei hinzukommen/wechseln. Keine Temp-Datei im Gedächtnis. Eingebettete vorige Fassung nach zweitem Speichern prüfen.
+6. Oberfläche bei schmaler Breite, reduzierte Bewegung und 3D-Leistung nach bestehender README-Methode prüfen; O10 durch Basti bewerten lassen. Diese Prüfungen sowie die unabhängige Abnahme sind offen.
+
+---
+
+# Historische Übergaben (nicht der aktuelle Abnahmestatus)
+
 # Übergabe Lieferstand 1 · Korrekturrunde 1 · 21.10.2026
 
 **KI B:** Codex, Umsetzung und eigene Prüfung. **KI A:** Claude Code, Planung und unabhängige Prüfung. Auftraggeber: Basti.

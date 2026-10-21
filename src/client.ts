@@ -1,8 +1,11 @@
+import { Navigation } from './navigation.js';
+import { hiddenBy, ordered, rememberOrder, visibleGraph } from './preferences.js';
+import type { SettingsState } from './preferences.js';
 import type { Graph } from './graph.js';
 import type { createRoom } from './room.js';
 import type { Entry, Link, Note } from './vault.js';
 declare const DOMPurify: { sanitize: (html: string, options: { ADD_ATTR: string[] }) => string };
-interface State { entries: Entry[]; updated: string; warnings: string[]; durationMs: number }
+interface State { settings: SettingsState; entries: Entry[]; updated: string; warnings: string[]; durationMs: number }
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const main = el('main');
 const status = el('status');
@@ -57,15 +60,28 @@ async function api<T>(url: string, options?: RequestInit): Promise<T> {
   return result as T;
 }
 function errorMessage(error: unknown) { return error instanceof Error ? error.message : 'Unbekannter Fehler.'; }
-function tree(parent = ''): string {
-  return '<ul>' + state.entries.filter(e => e.path.slice(0, Math.max(0, e.path.lastIndexOf('/'))) === parent && (parent !== '' || !e.path.includes('/'))).map(e => e.kind === 'folder'
-    ? `<li><details><summary>${icon(e)} ${escape(e.title)}</summary>${a(e.path, 'Ordner öffnen')}${tree(e.path)}</details></li>`
-    : `<li>${entryLink(e)}</li>`).join('') + '</ul>';
-}
+const navigation = new Navigation(el('tree'), async (current, revision) => {
+  const refresh = el<HTMLButtonElement>('refresh'); refresh.disabled = true;
+  try {
+    const settings = await api<SettingsState>('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Brain-Request': '1' }, body: JSON.stringify({ current, revision }) });
+    state.settings = settings;
+    room?.dispose(); room = undefined;
+    await route();
+    return settings;
+  } finally { refresh.disabled = false; }
+}, async () => {
+  await api('/api/refresh', { method: 'POST', headers: { 'X-Brain-Request': '1' } });
+  await load(); room?.dispose(); room = undefined; await route();
+});
 async function load() {
-  state = await api<State>('/api/state');
-  el('tree').innerHTML = DOMPurify.sanitize(tree(), { ADD_ATTR: ['target'] });
+  const next = await api<State>('/api/state');
+  // Keep discovery order within this page even before the first explicit save.
+  // A changed file revision replaces this transient state completely.
+  if (next.settings.writable) next.settings.current = rememberOrder(state && state.settings.revision === next.settings.revision ? state.settings.current : next.settings.current, next.entries);
+  state = next;
+  navigation.update(state.entries, state.settings);
   status.textContent = `${state.entries.filter(e => e.kind === 'note').length} Notizen · Zuletzt eingelesen: ${new Date(state.updated).toLocaleString('de-DE')} · ${Math.round(state.durationMs)} ms${state.warnings.length ? ` · ${state.warnings.length} Hinweise (Startseite)` : ''}`;
+  if (state.settings.warning) status.textContent += ' · ' + state.settings.warning;
 }
 function linkDetails(link: Link) {
   if (link.kind === 'resolved') return `<p>${a(link.targets[0]!, 'Ziel öffnen: ' + link.targets[0], link.anchor)}</p>`;
@@ -95,7 +111,7 @@ async function route() {
         commit('<p>Wissensraum wird aufgebaut …</p>');
         const [module, graph] = await Promise.all([import('./room.js'), api<Graph>('/api/graph')]);
         if (ticket !== generation) return;
-        room = module.createRoom(graph, path => navigate(href(path)), roomCamera, started);
+        room = module.createRoom(visibleGraph(graph, state.settings.current), path => navigate(href(path)), roomCamera, started, state.settings.current);
       }
       if (ticket !== generation) return;
       main.replaceChildren(room.root); room.activate(true);
@@ -112,7 +128,7 @@ async function route() {
       const entry = state.entries.find(e => e.path === p);
       if (!entry) throw new Error('Diese Datei ist nicht mehr vorhanden oder ausgeschlossen. Bitte aktualisieren.');
       if (entry.kind === 'folder') {
-        commit(`<h1>${icon(entry)} ${escape(entry.title)}</h1><p class="breadcrumb">${escape(p)}</p><ul class="folder-list">${state.entries.filter(e => e.path.startsWith(p + '/') && !e.path.slice(p.length + 1).includes('/')).map(e => `<li>${entryLink(e)} <small>${e.kind === 'folder' ? 'Ordner' : e.kind === 'note' ? 'Notiz' : 'Anhang'}</small></li>`).join('')}</ul>`);
+        commit(`<h1>${icon(entry)} ${escape(entry.title)}</h1><p class="breadcrumb">${escape(p)}</p><ul class="folder-list">${ordered(state.entries.filter(e => e.path.startsWith(p + '/') && !e.path.slice(p.length + 1).includes('/') && !hiddenBy(e.path, state.settings.current)), state.settings.current.order[p]).map(e => `<li>${entryLink(e)} <small>${e.kind === 'folder' ? 'Ordner' : e.kind === 'note' ? 'Notiz' : 'Anhang'}</small></li>`).join('')}</ul>`);
       } else if (entry.kind === 'file') {
         const url = '/api/file?path=' + encodeURIComponent(p);
         commit(`<h1>${icon(entry)} ${escape(entry.title)}</h1><p class="breadcrumb">${escape(p)}</p><p><a href="${escape(url)}" target="_blank" rel="noopener noreferrer">Anhang öffnen ↗</a></p>${/\.(png|jpe?g|gif|webp|avif|svg)$/i.test(p) ? `<img src="${escape(url)}" alt="${escape(entry.title)}">` : ''}`);
@@ -121,7 +137,7 @@ async function route() {
         commit(`<p class="breadcrumb">${escape(note.path)}</p><h1 class="note-title">${icon(entry)} ${escape(note.title)}</h1>${Object.keys(note.metadata).length ? '<dl class="metadata">' + Object.entries(note.metadata).map(([key, value]) => `<dt>${escape(key)}</dt><dd>${escape(Array.isArray(value) ? value.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(', ') : typeof value === 'string' ? value : JSON.stringify(value))}</dd>`).join('') + '</dl>' : ''}${note.warnings.map(w => `<p class="notice">${escape(w)}</p>`).join('')}<article>${note.html}</article><section class="backlinks"><h2>Rückverweise (${note.backlinks.length})</h2>${note.backlinks.length ? '<ul>' + note.backlinks.map(p => `<li>${a(p)}</li>`).join('') + '</ul>' : '<p>Keine Rückverweise.</p>'}</section>`);
       }
     } else {
-      commit(`<p class="eyebrow">Dein persönlicher Wissensraum</p><h1>Gedanken wiederfinden.<br>Verbindungen entdecken.</h1><p>Durchsuche dein Gedächtnis oder öffne links einen Ordner. Mit „Aktualisieren“ liest du Änderungen anderer Anwendungen ein.</p><p class="notice">Die Originale bleiben erhalten. Diese Ansicht liest ausschließlich.</p>${state.warnings.length ? '<h2>Hinweise beim Einlesen</h2><ul>' + state.warnings.map(w => `<li>${escape(w)}</li>`).join('') + '</ul>' : ''}`);
+      commit(`<p class="eyebrow">Dein persönlicher Wissensraum</p><h1>Gedanken wiederfinden.<br>Verbindungen entdecken.</h1><p>Durchsuche dein Gedächtnis oder öffne links einen Ordner. Mit „Aktualisieren“ liest du Änderungen anderer Anwendungen ein.</p><p class="notice">Die Originale bleiben erhalten. Nur deine Navigationseinstellungen werden gespeichert.</p>${state.warnings.length ? '<h2>Hinweise beim Einlesen</h2><ul>' + state.warnings.map(w => `<li>${escape(w)}</li>`).join('') + '</ul>' : ''}`);
     }
     if (ticket === generation) {
       document.title = (spatial ? '3D-Ansicht' : p?.split('/').at(-1) ?? 'Gedächtnis') + ' · AI Brain OS';

@@ -32,7 +32,7 @@ export class Vault {
     const hits = this.snapshot.entries.filter(e => e.path.normalize('NFC') === address.normalize('NFC') && this.allowed(e.path));
     return hits.length === 1 ? hits[0]!.path : undefined;
   }
-  // Every read (including attachments) passes this boundary. No writable fs handle exists in application code.
+  // All knowledge reads pass this boundary. Settings have a separate fixed-path store.
   private async checkedPath(relative: string): Promise<string> {
     if (!this.allowed(relative)) throw new AccessError('Datei nicht verfügbar.');
     let current = this.root;
@@ -83,7 +83,7 @@ export class Vault {
         const p = dir ? `${dir}/${item.name}` : item.name;
         if (!this.allowed(p)) continue;
         if (item.isSymbolicLink()) { next.warnings.push(`${p}: Symbolischer Link ausgelassen.`); continue; }
-        const entry: Entry = { path: p, kind: item.isDirectory() ? 'folder' : /\.md$/i.test(p) ? 'note' : 'file', title: item.name.replace(/\.md$/i, '') };
+        const entry: Entry = { path: p, kind: item.isDirectory() ? 'folder' : /\.md$/i.test(p) ? 'note' : 'file', title: item.isDirectory() ? item.name : item.name.replace(/\.md$/i, '') };
         if (!item.isDirectory() && !item.isFile()) continue;
         next.entries.push(entry);
         if (item.isDirectory()) {

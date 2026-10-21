@@ -16,7 +16,7 @@ export function graphFromIndex(snapshot: Snapshot): Graph {
       else { const entry = entries.get(target); if (entry) resources.push({ path: target, label: link.label, kind: entry.kind }); }
     }
     const date = typeof note.metadata.date === 'string' ? Date.parse(note.metadata.date) : NaN;
-    return { path: note.path, title: note.title, folder: note.path.includes('/') ? note.path.split('/')[0]! : 'Wurzel', daily: note.path.startsWith('05 Daily Notes/'), date: Number.isFinite(date) ? date : note.modifiedMs ?? 0, resources };
+    return { path: note.path, title: note.title, folder: note.path.includes('/') ? note.path.split('/')[0]! : '', daily: note.path.startsWith('05 Daily Notes/'), date: Number.isFinite(date) ? date : note.modifiedMs ?? 0, resources };
   });
   return { nodes, edges: [...pairs].map(p => p.split(',').map(Number) as [number, number]), folders: [...new Set([...snapshot.entries.filter(e => e.kind === 'folder' && !e.path.includes('/')).map(e => e.path), ...nodes.map(n => n.folder)])].sort() };
 }
