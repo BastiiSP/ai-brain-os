@@ -1,3 +1,5 @@
+import type { Graph } from './graph.js';
+import type { createRoom } from './room.js';
 import type { Entry, Link, Note } from './vault.js';
 declare const DOMPurify: { sanitize: (html: string, options: { ADD_ATTR: string[] }) => string };
 interface State { entries: Entry[]; updated: string; warnings: string[]; durationMs: number }
@@ -28,6 +30,8 @@ document.querySelectorAll<HTMLButtonElement>('[data-theme-choice]').forEach(butt
   try { localStorage.setItem(themeKey, theme); } catch { /* Private browsing may block storage. */ }
 }));
 let factsUrl = '/';
+let room: ReturnType<typeof createRoom> | undefined;
+const roomCamera = { azimuth: -.8, polar: .65, distance: 0 };
 function icon(entry: Entry): string {
   if (entry.kind === 'folder') return '<span class="entry-icon folder" aria-hidden="true"></span>';
   if (entry.kind === 'note') return '<span class="entry-icon note" aria-hidden="true"></span>';
@@ -72,6 +76,8 @@ async function route() {
   const ticket = ++generation;
   const params = new URLSearchParams(location.search);
   const spatial = params.get('view') === '3d';
+  room?.activate(false);
+  room?.root.remove();
   el<HTMLButtonElement>('view-facts').setAttribute('aria-pressed', String(!spatial));
   el<HTMLButtonElement>('view-3d').setAttribute('aria-pressed', String(spatial));
   if (!spatial) factsUrl = location.pathname + location.search + location.hash;
@@ -83,8 +89,15 @@ async function route() {
   const commit = (html: string) => { if (ticket === generation) show(html); };
   try {
     if (spatial) {
-      commit('<section class="placeholder"><p class="eyebrow">Wissensraum · Vorschau</p><h1>Die 3D-Ansicht folgt in Lieferstand 4.</h1><p>Deine Notizen und Verknüpfungen bleiben bis dahin in der Faktenansicht zugänglich. Dort kannst du suchen, lesen und zwischen Dateien wechseln.</p><button id="back-to-facts" type="button">Zur Faktenansicht</button></section>');
-      el<HTMLButtonElement>('back-to-facts').addEventListener('click', () => navigate(factsUrl));
+      if (!room) {
+        const started = performance.now();
+        commit('<p>Wissensraum wird aufgebaut …</p>');
+        const [module, graph] = await Promise.all([import('./room.js'), api<Graph>('/api/graph')]);
+        if (ticket !== generation) return;
+        room = module.createRoom(graph, path => navigate(href(path)), roomCamera, started);
+      }
+      if (ticket !== generation) return;
+      main.replaceChildren(room.root); room.activate(true);
     } else if (query !== null) {
       const hits = await api<Array<{ path: string; title: string; snippet: string }>>('/api/search?q=' + encodeURIComponent(query));
       commit(`<h1>Suche: ${escape(query)}</h1><p>${hits.length} Treffer</p>${hits.map(hit => `<section class="result"><h2>${a(hit.path, hit.title)}</h2><small>${escape(hit.path)}</small><p>${escape(hit.snippet)}</p></section>`).join('') || '<p>Keine passenden Notizen gefunden.</p>'}`);
@@ -134,7 +147,7 @@ window.addEventListener('popstate', () => { void route(); });
 el('search-form').addEventListener('submit', event => { event.preventDefault(); navigate('/?q=' + encodeURIComponent(el<HTMLInputElement>('search').value.trim())); });
 el<HTMLButtonElement>('refresh').addEventListener('click', async () => {
   const button = el<HTMLButtonElement>('refresh'); button.disabled = true; status.textContent = 'Gedächtnis wird neu eingelesen …';
-  try { await api('/api/refresh', { method: 'POST', headers: { 'X-Brain-Request': '1' } }); await load(); await route(); }
+  try { await api('/api/refresh', { method: 'POST', headers: { 'X-Brain-Request': '1' } }); await load(); room?.dispose(); room = undefined; await route(); }
   catch (error) { status.textContent = errorMessage(error); }
   finally { button.disabled = false; }
 });

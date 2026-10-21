@@ -9,7 +9,7 @@ export const norm = (s: string) => s.normalize('NFC').toLowerCase();
 export const headingId = (s: string) => `heading-${norm(s).trim().replace(/\s+/g, '-')}`;
 export const isImage = (p: string) => /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(p);
 export interface Entry { path: string; kind: 'note' | 'file' | 'folder'; title: string }
-export interface Note extends Entry { body: string; html: string; metadata: Record<string, unknown>; warnings: string[]; links: Link[] }
+export interface Note extends Entry { modifiedMs?: number; body: string; html: string; metadata: Record<string, unknown>; warnings: string[]; links: Link[] }
 export interface Link { raw: string; label: string; anchor: string; kind: 'resolved' | 'ambiguous' | 'missing' | 'external'; targets: string[]; suggestions: string[] }
 export interface Snapshot { entries: Entry[]; notes: Map<string, Note>; updated: string; warnings: string[]; durationMs: number }
 export class AccessError extends Error {}
@@ -91,6 +91,7 @@ export class Vault {
         } else if (entry.kind === 'note') {
           const note: Note = { ...entry, body: '', html: '', metadata: {}, warnings: [], links: [] };
           try {
+            note.modifiedMs = (await lstat(await this.checkedPath(p))).mtimeMs;
             const buffer = await this.read(p, this.config.maxNoteBytes);
             note.body = new TextDecoder('utf-8', { fatal: true }).decode(buffer).replace(/^\uFEFF/, '');
             if (!note.body.trim()) note.warnings.push('Leere Notiz.');

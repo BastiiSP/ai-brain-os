@@ -1,4 +1,4 @@
-# AI Brain OS · Lieferstand 3
+# AI Brain OS · Lieferstand 4
 
 Lokale, ausschließlich lesende Ansicht eines Markdown-Gedächtnisses: Ordnernavigation, Notizen mit Metadaten, Volltextsuche, Wikilinks und Markdown-Links, Rückverweise und Übersicht offener Verknüpfungen. Der Index lebt nur im Arbeitsspeicher. Keine Datenbank, keine Kopie des Gedächtnisses, kein externer Dienst.
 
@@ -54,7 +54,7 @@ Ohne Konfigurationsdatei wird `../ai-brain-gedaechtnis` gelesen. Optional `confi
 
 ## Nutzung
 
-- Oben zwischen **Fakten** und **3D** wechseln. Die 3D-Ansicht zeigt bis Lieferstand 4 einen Platzhalter; mit „Zur Faktenansicht“ gelangst du zur zuletzt geöffneten Faktenadresse zurück.
+- Oben zwischen **Fakten** und **3D** wechseln. Die 3D-Ansicht zeigt die Notizen als Chips auf Ordnersockeln. „Lesen“ in der Notizkarte öffnet dieselbe Notiz in der Faktenansicht; „3D“ kehrt zur erhaltenen Kamera zurück (innerhalb derselben Browserseite).
 - **Hell**, **Dunkel** oder **System** wählen. Die Wahl wird im Browser gespeichert; „System“ folgt der Betriebssystemeinstellung. Die Oberfläche beachtet „Bewegung reduzieren“. Bei gesperrtem Browser-Speicher gilt vorübergehend „System“.
 - Nunito für Fließtext und JetBrains Mono für Pfade, Metadaten und Zähler werden lokal ausgeliefert. Die WOFF2-Dateien und OFL-Lizenzen stehen unter `public/fonts/`; zur Laufzeit werden keine Schriften aus dem Netz geladen. Quelle der vier Dateien: `@fontsource-variable/nunito@5.3.0` und `@fontsource-variable/jetbrains-mono@5.3.0`, jeweils `files/*-latin-wght-normal.woff2` und `LICENSE`. Diese Pakete sind keine Laufzeitabhängigkeiten.
 - Links einen Ordner aufklappen oder „Ordner öffnen“ wählen; Notizen und Anhänge haben eigene URLs.
@@ -102,14 +102,47 @@ KI A muss am übergebenen Commit noch selbst prüfen: Start/Bindung (`lsof -nP -
 - `src/markdown.ts`: Markdown-Token-Verarbeitung; kein Ersetzen von Wikilinks innerhalb von Code. Roh-HTML wird als Text maskiert, erzeugte Attribute werden escaped.
 - `src/server.ts`: portlos testbarer Request-Handler, feste Asset-Liste, Same-Origin-/Host-Schutz, CSP, kein CORS.
 - `src/main.ts`: Node-HTTP-Adapter mit fester Loopback-Bindung.
-- `src/client.ts`, `public/`: TypeScript-Oberfläche ohne UI-Framework; zusätzliche HTML-Bereinigung mit DOMPurify vor jeder HTML-Einfügung. Farbmodi als CSS-Variablen, Auswahl im Browser-Speicher, lokale variable WOFF2-Schriften und ein 3D-Platzhalter.
+- `src/client.ts`, `public/`: TypeScript-Oberfläche ohne UI-Framework; zusätzliche HTML-Bereinigung mit DOMPurify vor jeder HTML-Einfügung. Farbmodi als CSS-Variablen, Auswahl im Browser-Speicher, lokale variable WOFF2-Schriften und der lokal gerenderte 3D-Wissensraum.
 
 Laufzeitabhängigkeiten (exakte Versionen im Lockfile): [markdown-it](https://github.com/markdown-it/markdown-it) für CommonMark/Tabellen und Token-Erweiterungen, [yaml](https://eemeli.org/yaml/) für strukturiertes Frontmatter mit Aliaslimit, [DOMPurify](https://github.com/cure53/DOMPurify) für zusätzliche Bereinigung im Browser. Entwicklung: TypeScript mit integriertem LSP und Node-24-Typen. Node liefert HTTP und Test-Runner; kein zusätzlicher Server, Bundler oder Test-Framework nötig.
 
 ## Grenzen und Schutzmodell
 
-Keine Bearbeitung, Importe, KI-Funktionen, Graphansicht oder Persistenz. Fehlerhafte und leere Notizen bleiben mit Hinweis sichtbar. Über dem Größenlimit wird eine Notiz **nicht teilweise** angezeigt oder durchsucht; nach Erhöhung des Limits neu starten. Anhänge sind auf 64 MiB pro Abruf begrenzt; Bilder und PDF dürfen separat geöffnet werden, andere Typen werden heruntergeladen. SVG erhält eine restriktive Sandbox-CSP, eingebettete Skripte dürfen nicht laufen. HTML-Dateien werden nur als Download ausgeliefert.
+Keine Bearbeitung, Importe, KI-Funktionen oder Persistenz des Graphen. Fehlerhafte und leere Notizen bleiben mit Hinweis sichtbar. Über dem Größenlimit wird eine Notiz **nicht teilweise** angezeigt oder durchsucht; nach Erhöhung des Limits neu starten. Anhänge sind auf 64 MiB pro Abruf begrenzt; Bilder und PDF dürfen separat geöffnet werden, andere Typen werden heruntergeladen. SVG erhält eine restriktive Sandbox-CSP, eingebettete Skripte dürfen nicht laufen. HTML-Dateien werden nur als Download ausgeliefert.
 
 Eine erfolgreiche Aktualisierung ersetzt den Index atomar. Bei nicht erreichbarer Wurzel bleibt die vorherige Generation bestehen und die Oberfläche meldet den Fehler. Kein Dateisystem-Snapshot: Änderungen während des Einlesens können Hinweise oder einen gemischten Zeitstand erzeugen; danach erneut aktualisieren. Gleichzeitige Refresh-Anfragen werden zusammengefasst.
 
 Die Anwendung ist für Bastis vertrauenswürdiges lokales Dateisystem gedacht. Pfad- und Symlinkprüfungen reduzieren auch Austauschrennen, stellen aber keine Betriebssystem-Isolation gegen einen bösartigen lokalen Prozess dar, der Verzeichnisse fortlaufend austauscht. Keine Authentifizierung und kein Netzwerkbetrieb. Vertrauliche Dateien innerhalb der Wurzel müssen explizit ausgeschlossen sein; Git-Ignore-Regeln werden nicht automatisch als Wissensausschlüsse interpretiert.
+
+## Wissensraum: Darstellung und Regeln
+
+Ziehen dreht die Kamera, Scrollen/Trackpad zoomt, Klick auf einen Chip öffnet die Karte. Pfeiltasten und +/− bedienen die Kamera ebenfalls; die Notizauswahl unter dem Raum ist per Tastatur erreichbar. „Kamera zurücksetzen“ stellt den Überblick her. Bei fehlendem WebGL bleibt die Faktenansicht über den vorhandenen Umschalter erreichbar.
+
+- Ein Chip je indexierter Notiz. Ein Sockel je sichtbarem Hauptordner, zusätzlich „Wurzel“ für Notizen ohne Ordner. Nummern im Ordnernamen bleiben erhalten, ansonsten erhalten Sockel eine Anzeigezahl. Die Ordnerpalette wird aus Türkis und Pink des aktuellen Farbmodus abgeleitet. Mehr verknüpfte Chips sind größer; bei maximaler Chipbreite 4 bleiben mindestens 6 Welteinheiten Abstand zwischen Chips.
+- Eine Bahn je ungeordnetem Paar verschiedener Notizen mit mindestens einem eindeutig aufgelösten Link. Wiederholungen, Gegenrichtung und Selbstverweise erzeugen keine zusätzliche Bahn. Aufgelöste Links auf Anhänge/Ordner erscheinen als einzeln gezählte Linkvorkommen in der Karte. Nicht aufgelöste und mehrdeutige Links erscheinen dort nicht.
+- Bahnen laufen rechtwinklig über eigene Höhen und getrennte Anschlusspunkte innerhalb der Chipoberfläche. Überkreuzungen sind möglich; gemeinsame Streckenabschnitte sind ausgeschlossen. Die Tests prüfen die tatsächliche Float32-Genauigkeit der Renderkoordinaten, auch mit 2.000 Notizen/4.000 Bahnen und einem Hub mit 1.999 Nachbarn. Bei Hover und Auswahl werden die zugehörigen Bahnen farbig hervorgehoben, die übrigen zum Hintergrund hin gedimmt.
+- Notizen unter `05 Daily Notes/` erscheinen blass. Der Schalter blendet ihre Chips und verbundenen Bahnen aus; die Zähler zeigen dargestellte und gesamte Mengen.
+- „Wachstum abspielen“ zeigt über acht Sekunden die chronologische Reihenfolge: gültige, mit `Date.parse` lesbare Frontmatter-Zeichenfolge `date`, sonst indexierte Dateiänderungszeit. Datum ohne Uhrzeit wird als UTC interpretiert; gleiche Zeitpunkte werden nach der stabilen Pfadreihenfolge aufgelöst. Fehlt wegen eines Lesefehlers auch die Änderungszeit, wird 0 verwendet. „Alle zeigen“ beendet die Wiedergabe.
+- „Bewegung“ schaltet Impulse, langsames Drehen und gemeinsames Schweben der Platine ein/aus. Ohne Bewegung ist auch Wachstum gesperrt. Die Systemeinstellung „Bewegung reduzieren“ erzwingt dies, auch bei Änderung während der Nutzung. In der Faktenansicht ist die Render-Schleife pausiert.
+- Die Ansicht bleibt innerhalb der Browserseite erhalten. „Aktualisieren“ verwirft den alten Raum und lädt den aktuellen Index; die Kamera bleibt erhalten. Kein Raumzustand wird ins Gedächtnis geschrieben.
+
+### Reproduzierbare R8-Messung für KI A
+
+```bash
+npm run build
+node scripts/room-benchmark.mjs
+```
+
+Das Skript erzeugt ein neues, rein erfundenes Test-Gedächtnis unter `.test-work/room-*` im Anwendungsordner: **2.000 Notizen, 4.000 unterschiedliche Notizpaare** in sieben Hauptordnern. Es nutzt den normalen Index und HTTP-Adapter mit eigener Wurzel auf **127.0.0.1:3211**, ohne `config.local.json` zu ändern und ohne Dienststeuerung. Öffne `http://127.0.0.1:3211/?view=3d`. Ein belegter Port führt zu einer Fehlermeldung; fremde Prozesse werden nicht beendet. Mit Ctrl+C nur diesen Testprozess beenden. Die erfundenen Dateien bleiben zur Nachprüfung im ignorierten Testordner.
+
+Die Anzeige „Aufbau“ misst vom Einstieg in die 3D-Route einschließlich Laden der lokalen Module und Graphdaten bis zum ersten abgeschlossenen Render-Aufruf. Sie ist bei einer frischen Seite zu erfassen, nicht bei der Rückkehr zum bereits aufgebauten Raum. Serverstart und vorherige Indexierung werden getrennt betrachtet: Der Index entsteht vor dem HTTP-Start; seine Dauer steht oben in der Anwendung. Der erste Render-Aufruf garantiert noch keinen gemessenen GPU-Abschluss.
+
+Für die Bildrate: gleicher Browser, Vordergrund-Tab, gleiche Fenstergröße, Browserzoom 100 %, Netzbetrieb und keine geöffneten Entwicklertools. Alle Notizen anzeigen, Wachstum beendet, Bewegung aus, Kamera in Übersicht. Nach fünf Sekunden Aufwärmen dreimal „10 Sekunden messen“ verwenden und alle drei Mittelwerte protokollieren; zusätzlich den laufenden 1-s-Zähler beobachten. Die Anzeige nennt die Renderauflösung. Danach denselben Ablauf mit Bewegung an und beim Drehen/Selektieren als ergänzende Belastungsprobe durchführen. Verdeckte Tabs und Ansichtswechsel verwerfen laufende Messungen. Ziel: mindestens 30 Bilder/s mit Testmenge, mindestens 50 Bilder/s beim realen Bestand; Raumaufbau jeweils unter 2.000 ms. Browser-/macOS-Version, Hardware, Auflösung, Bewegungszustand und Einzelwerte festhalten.
+
+Die Messung des echten Bestands führt KI A nach Aktualisierung des Dienstes auf Port 3210 durch. **KI B hat keine Browser-Bildrate oder visuelle Abnahme gemessen.** Eine schnelle reine Layoutberechnung belegt R8 nicht.
+
+### Erweiterte Architektur
+
+`src/graph.ts` leitet die Raumdaten ausschließlich aus einem vollständigen Index ab. `src/room-layout.ts` berechnet deterministisch Sockel, Chips, Anschlüsse und Bahnen, ohne DOM oder WebGL. `src/room.ts` rendert mit instanzierten Chips und einem gemeinsamen Linienpuffer; Geometrie und Farben werden nur bei Zustandswechseln aktualisiert. `src/http.ts` enthält den bisherigen Loopback-HTTP-Adapter, den normaler Start und Teststart gemeinsam nutzen.
+
+Neue direkte Abhängigkeiten: **three 0.186.1** (MIT), verbreitete WebGL-Bibliothek für instanzierte Geometrie, Kamera und Picking; **@types/three 0.186.0** nur zur Entwicklung. Versionen und transitive Abhängigkeiten stehen im Lockfile. Keine weiteren Laufzeitdienste oder Bundler. Die zwei Three.js-Module werden über die feste Asset-Liste aus `node_modules/three/build` ausgeliefert. Die CSP bleibt unverändert; weder CDN, Importmap, Inline-Skript noch `unsafe-eval` ist nötig. Beschriftungen entstehen lokal als Canvas-Texturen.

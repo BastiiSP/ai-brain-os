@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { graphFromIndex } from './graph.js';
 import { Vault } from './vault.js';
 
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
@@ -13,6 +14,10 @@ export function createHandler(vault: Vault, base = process.cwd()) {
   const assets: Record<string, [string, string]> = {
     '/': ['public/index.html', 'text/html; charset=utf-8'],
     '/style.css': ['public/style.css', 'text/css; charset=utf-8'],
+    '/room.js': ['dist/src/room.js', 'text/javascript; charset=utf-8'],
+    '/room-layout.js': ['dist/src/room-layout.js', 'text/javascript; charset=utf-8'],
+    '/three.module.js': ['node_modules/three/build/three.module.js', 'text/javascript; charset=utf-8'],
+    '/three.core.js': ['node_modules/three/build/three.core.js', 'text/javascript; charset=utf-8'],
     '/app.js': ['dist/src/client.js', 'text/javascript; charset=utf-8'],
     '/purify.js': ['node_modules/dompurify/dist/purify.min.js', 'text/javascript; charset=utf-8'],
     '/fonts/nunito-latin-wght-normal.woff2': ['public/fonts/nunito-latin-wght-normal.woff2', 'font/woff2'],
@@ -29,6 +34,7 @@ export function createHandler(vault: Vault, base = process.cwd()) {
         await vault.refresh();
         return json({ updated: vault.snapshot.updated });
       }
+      if (url.pathname === '/api/graph') return json(graphFromIndex(vault.snapshot));
       if (url.pathname === '/api/state') return json({ entries: vault.snapshot.entries, updated: vault.snapshot.updated, warnings: vault.snapshot.warnings, durationMs: vault.snapshot.durationMs });
       if (url.pathname === '/api/search') return json(vault.search(url.searchParams.get('q') ?? ''));
       if (url.pathname === '/api/issues') return json(vault.issues());

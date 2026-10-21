@@ -145,3 +145,85 @@ git rev-parse HEAD
 ```
 
 Kein Remote anlegen. Danach den bezeichneten Commit unabhängig prüfen. Bis dahin ist E11 offen.
+
+---
+
+## Claudian-Update – 21.10.2026 · Lieferstand 4
+
+### Implementiert
+
+KI B: Codex (Umsetzung und eigene Prüfung). KI A: Claude Code (Planung und ausstehende unabhängige Prüfung). Auftraggeber: Basti.
+
+Ziel: den vorhandenen 3D-Platzhalter durch eine lokale Platine aus dem bestehenden Index ersetzen. Grundlage ist R1 in der von KI A präzisierten Fassung sowie R2–R10 und G1–G6. Der ursprüngliche Planeinwand ist damit erledigt; keine weiteren wesentlichen Planeinwände.
+
+- Graphprojektion aus dem Index: genau ein Chip pro Notiz, eine Bahn pro ungeordnetem Notizpaar; Ressourcenlinks separat in der Karte. Keine erneute Linkauflösung, kein zusätzlicher Dateibestand.
+- Sockel nach Hauptordner, themenabhängige Farben, Größen nach Knotengrad; Tagesnotizen blass/ausblendbar.
+- Rechtwinklige Bahnen mit eigenen Höhen und Anschlüssen, Türkis-Pink-Verlauf, Hover-/Auswahlhervorhebung. Instanzierte Chips und gemeinsame Liniengeometrie.
+- Drehen, Zoomen, Notizkarte, Ressourcenlinks, Lesen in Faktenansicht und Rückkehr mit erhaltener Kamera; ergänzende Tastatursteuerung und Notizauswahl.
+- Chronologisches Wachstum, Datenimpulse, langsames Drehen/Schweben, Bewegungsschalter und dynamische Beachtung reduzierter Bewegung.
+- Lokales Three.js ohne Änderung der CSP. Wiederverwendbarer HTTP-Adapter für den isolierten Teststart.
+- Reproduzierbare erfundene Testmenge sowie Anzeige von Aufbauzeit, laufender Bildrate und 10-s-Mittelwert.
+
+Vollständige Dateiliste des uncommittierten Übergabestands:
+
+| Datei | Änderung |
+| --- | --- |
+| `README.md` | Bedienung, Datenregeln, Datumsregel, Messmethode und Teststart |
+| `HANDOFF.md` | diese Übergabe; frühere Übergaben bleiben erhalten |
+| `package.json` | Three.js und TypeScript-Typen |
+| `package-lock.json` | exakte Abhängigkeiten |
+| `public/style.css` | Raum, Steuerung, Karte, responsive Darstellung |
+| `src/client.ts` | lazy geladene Raumansicht, Navigation und Lebenszyklus |
+| `src/main.ts` | Aufruf des gemeinsamen HTTP-Adapters |
+| `src/server.ts` | geschützter Graph-Endpunkt und feste lokale Modulrouten |
+| `src/vault.ts` | Dateiänderungszeit im Index für R6 |
+| `src/graph.ts` (neu) | Projektion des Index in Raumdaten |
+| `src/http.ts` (neu) | bisheriger Loopback-HTTP-Adapter, unveränderte Herkunftsprüfungen |
+| `src/room-layout.ts` (neu) | deterministische Platzierung und Bahngeometrie |
+| `src/room.ts` (neu) | Three.js-Ansicht, Interaktion und Messanzeige |
+| `src/three.module.d.ts` (neu) | Typen für lokal ausgeliefertes Three.js-Modul |
+| `scripts/room-fixture.mjs` (neu) | Generator ausschließlich unter `.test-work/` |
+| `scripts/room-benchmark.mjs` (neu) | eigener Testserver auf 127.0.0.1:3211 |
+| `tests/room.test.mjs` (neu) | unabhängige Zählung, Geometrie, Datum, Ressourcen, Schutz, Manifest |
+
+### Getestet
+
+Eigene Prüfung am uncommittierten Stand auf Basis von `adcc194143f8abc7a2e3b49d703a2c032e8f9ead`:
+
+| Befehl | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | bestanden |
+| `npm test` | 28/28 bestanden; einschließlich aller 24 bisherigen Tests |
+| `npm audit` | 0 Schwachstellen |
+| `npm run check:lsp` | 12 TypeScript-Dateien, 0 Diagnosen; Exitcode 0 (`context canceled` beim regulären Shutdown) |
+| `git diff --check` | bestanden |
+| `node --check scripts/room-fixture.mjs` | bestanden |
+| `node --check scripts/room-benchmark.mjs` | bestanden |
+| `node --check tests/room.test.mjs` | bestanden |
+
+R1: unabhängiger Vergleich der tatsächlichen Paare und Notizpfade mit dem Index; Gegenrichtung, wiederholte Links, Selbstverweise, fehlende/mehrdeutige Ziele, Ressourcen und ausgeschlossene Inhalte enthalten. R3: unabhängiger Vergleich kollinearer Intervalle mit positiver Überlappung, einschließlich gerundeter Float32-Koordinaten. Eine gezielt überlappende Testgeometrie wird vom Prüfer abgewiesen. Große Testmenge: 2.000 Notizen, 4.000 Bahnen; zusätzlich Hub mit 1.999 Nachbarn. R2: große Menge hat mindestens 10 Welteinheiten Mittelpunktabstand. G1: Testdatei-Manifeste mit SHA-256, Änderungszeiten und Dateiliste bleiben nach Indexierung und Graphabrufen unverändert.
+
+Letzte Messung: Layoutberechnung der großen Testmenge **1,2 ms**, vorherige Indexierung **5.149,3 ms**, gesamte Testsuite ca. 5,8 s. Diese Messungen sind **keine WebGL-Aufbau- oder FPS-Messung**. Die Indexierung erfolgt vor Start des HTTP-Servers; sie erfüllt keine hypothetische Zwei-Sekunden-Grenze für den gesamten Prozessstart. R8 wird als Aufbau des Raums aus dem bereits vorhandenen Index gemessen.
+
+### Offen / Nächster Block
+
+Keine unabhängige Abnahme erfolgt. Gemäß Auftrag bleiben Oberfläche und Commit bei KI A. Kein Browser gestartet, kein Port geöffnet, kein Dienst beendet, kein `launchctl` oder `scripts/access.mjs` aufgerufen. Kein Test am echten Gedächtnis; dort auch keine Manifestmessung durchgeführt. Das echte Gedächtnis wurde nur zur Anforderungslektüre gelesen.
+
+KI A prüft insbesondere:
+
+1. Aus dem unveränderten Übergabestand committen (Codex als Umsetzer nennen), genau diesen Commit prüfen und den Dienst selbst aktualisieren. Aktuell laufender Dienst ist nicht aktualisiert.
+2. `npm run build` und `node scripts/room-benchmark.mjs`; Browser auf `http://127.0.0.1:3211/?view=3d`. Daten bleiben erfunden im ignorierten `.test-work/room-*`. Start/Bindung und Browser-Importe wurden hier nur durch portlose Assettests vorbereitet, nicht als echter Serverstart geprüft.
+3. R8 nach README messen: mindestens 30 Bilder/s mit Testmenge, mindestens 50 Bilder/s im echten Bestand und Raumaufbau unter 2 Sekunden. Aufbauzähler endet nach dem ersten Render-Aufruf, kein GPU-Timing. Zahlen sind noch **offen**. Keine Aussage über Hardwareleistung aus der reinen Layoutzeit ableiten.
+4. R2/R3 visuell: lesbare Sockel, passende Abstände/Farben, vollständige hervorgehobene Bahnen, Auswahl und Hover auch bei großer Menge. Unterschiedliche geometrische Abschnitte können bei Übersicht in dieselben Bildschirmpixel fallen; Unterscheidbarkeit bei Auswahl/Zoom muss visuell abgenommen werden.
+5. R4: Pointer/Trackpad/Tastatur, Notizkarte einschließlich Ressourcen, Lesen derselben Notiz, Kamera bei Rückkehr, Browser Vor/Zurück, Aktualisierung und WebGL-Ausfall.
+6. R5–R7/R9: Tagesnotizen, Datumssortierung im Wachstum, Stoppen/Alle zeigen, Bewegung aus, Systemeinstellung während Nutzung ändern, Hell/Dunkel/System, schmale Fenster. Automatisierte Prüfungen ersetzen keine Browserprüfung dieser Interaktionen.
+7. G1/G2/G3: reales Manifest vor/nach Browsernutzung, lokale Netzwerkrequests/CSP, Diffprüfung auf private Inhalte vor Push. Testmanifeste und unveränderte CSP sind bereits belegt.
+8. R10 bleibt Bastis Urteil.
+
+### Technische Notizen
+
+- Basis: `adcc194143f8abc7a2e3b49d703a2c032e8f9ead` auf `main`, plus oben gelisteter uncommittierter Diff. Kein Git-Schreibversuch: `.git` ist laut Laufumgebung nur lesbar und der Auftrag weist den Commit KI A zu.
+- Neue direkte Abhängigkeiten: `three@0.186.1` (MIT) für GPU-Instanzierung, Kamera und Picking; `@types/three@0.186.0` als Entwicklungsabhängigkeit. Sechs transitive Pakete der Typabhängigkeit sind im Lockfile erfasst. Keine weiteren direkten Pakete.
+- Keine Änderungen an AGENTS.md, CLAUDE.md, Konfiguration oder Gedächtnis. Keine Lockerung der CSP.
+- Kleine konkretisierte Gestaltungsentscheidungen: zusätzlicher Wurzel-Sockel; eigene Bahnanschlüsse und Höhen statt des überlappenden Routings der Skizze; gemeinsames Schweben von Chips und Bahnen hält Anschlüsse zusammen; keine Vorschläge/Netzwerk-Umschaltung aus der Skizze übernommen, da außerhalb Lieferstand 4. Datumsfallback und Messgrenzen stehen in README.
+- Kamera und Raumzustand gelten nur für dieselbe Browserseite. Es gibt keine dauerhafte Kameraspeicherung. Der Index bleibt die einzige Datenquelle; Testdaten und Prüfergebnisse enthalten kein reales Wissen.
