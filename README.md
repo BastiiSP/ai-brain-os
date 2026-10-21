@@ -29,7 +29,7 @@ Nach Codeänderungen aktualisieren (Build, Dienstneustart und Dock-Icon):
 node scripts/access.mjs update
 ```
 
-Das Dock-Icon „Chip-Hirn“ stammt aus [`assets/icon-chip-hirn.svg`](assets/icon-chip-hirn.svg). `install` und `update` erzeugen daraus lokal mit Swift/AppKit ein Icon-Paket mit 16 bis 1024 Pixeln einschließlich Retina-Größen. Die erzeugte `.icns`-Datei liegt nur in der installierten App und wird nicht versioniert. `update` ersetzt das Icon einer bestehenden App ohne Ausbau; der Dock-Eintrag bleibt erhalten. Die Darstellung in Dock, Finder und App-Umschalter prüft KI A auf dem Mac.
+Das Dock-Icon „Chip-Hirn“ stammt aus [`assets/icon-chip-hirn.svg`](assets/icon-chip-hirn.svg). `install` und `update` erzeugen daraus lokal mit Swift/AppKit ein Icon-Paket mit 16 bis 1024 Pixeln einschließlich Retina-Größen. Die erzeugte `.icns`-Datei liegt nur in der installierten App und wird nicht versioniert. `update` ersetzt das Icon einer bestehenden App ohne Ausbau; der Dock-Eintrag bleibt erhalten. Dabei werden die Standard-Applet-Icons entfernt und die App lokal neu signiert. Prüfen: `codesign -v ~/Applications/"AI Brain OS.app"` und anschließend das Chip-Hirn in Finder, Dock und App-Umschalter ansehen. macOS kann Icons zwischenspeichern; der Befehl startet das Dock nach dem Update neu.
 
 Nach einer Änderung von `config.local.json`, insbesondere des Ports, erst entfernen und neu einrichten, damit Dock-App und Dienst dieselbe Adresse verwenden. Vollständig ausbauen:
 

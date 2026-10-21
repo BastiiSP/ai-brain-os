@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { agentPlist, appScript, dockEntry, isOurDockEntry, LOG_LIMIT } from '../scripts/access-lib.mjs';
+import { setAppIcon } from '../scripts/app-icon.mjs';
 
 test('LaunchAgent stays local to this account and restarts', () => {
   const xml = agentPlist('/test/node', '/test/launcher', '/test/project');
@@ -79,5 +80,32 @@ test('SVG renders a valid macOS icon package at standard and Retina sizes', { sk
       assert.match(info, new RegExp(`pixelWidth: ${pixels}\\b`));
       assert.match(info, new RegExp(`pixelHeight: ${pixels}\\b`));
     }
+  } finally { rmSync(work, { recursive: true, force: true }); }
+});
+
+
+test('temporary Dock app selects Chip-Hirn icon and has a valid signature', { skip: process.platform !== 'darwin' }, () => {
+  const root = path.join(process.cwd(), '.test-work');
+  mkdirSync(root, { recursive: true });
+  const work = mkdtempSync(path.join(root, 'app-icon-'));
+  const updated = path.join(work, 'Updated.app');
+  const script = path.join(work, 'dock.applescript');
+  const icon = path.join(work, 'brain.icns');
+  const compile = app => execFileSync('/usr/bin/osacompile', ['-o', app, script]);
+  try {
+    writeFileSync(script, appScript(4321));
+    compile(updated);
+    execFileSync('/usr/bin/swift', [path.join(process.cwd(), 'scripts', 'build-icon.swift'), path.join(process.cwd(), 'assets', 'icon-chip-hirn.svg'), icon]);
+    setAppIcon(updated, icon);
+    setAppIcon(updated, icon); // existing app: update must remain valid
+    execFileSync('/usr/bin/codesign', ['-v', updated]);
+    const info = path.join(updated, 'Contents', 'Info.plist');
+    const plist = JSON.parse(execFileSync('/usr/bin/plutil', ['-convert', 'json', '-o', '-', info], { encoding: 'utf8' }));
+    assert.equal(plist.CFBundleIconFile, 'AI Brain OS.icns');
+    assert.equal(plist.CFBundleIconName, undefined);
+    const resources = path.join(updated, 'Contents', 'Resources');
+    assert.ok(readFileSync(path.join(resources, 'AI Brain OS.icns')).equals(readFileSync(icon)));
+    assert.throws(() => readFileSync(path.join(resources, 'Assets.car')));
+    assert.throws(() => readFileSync(path.join(resources, 'applet.icns')));
   } finally { rmSync(work, { recursive: true, force: true }); }
 });

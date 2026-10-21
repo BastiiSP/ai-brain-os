@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync, renameSync, rmSync, copyFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, renameSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LABEL, APP_NAME, agentPlist, appScript } from './access-lib.mjs';
+import { setAppIcon } from './app-icon.mjs';
 import { pathToFileURL } from 'node:url';
 
 const base = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,18 +28,6 @@ function buildIcon(work) {
   const icon = path.join(work, 'AI Brain OS.icns');
   run('/usr/bin/swift', [path.join(base, 'scripts', 'build-icon.swift'), path.join(base, 'assets', 'icon-chip-hirn.svg'), icon]);
   return icon;
-}
-
-function setAppIcon(appPath, icon) {
-  const resources = path.join(appPath, 'Contents', 'Resources');
-  mkdirSync(resources, { recursive: true });
-  const targetIcon = path.join(resources, 'AI Brain OS.icns');
-  const stagedIcon = path.join(resources, '.AI Brain OS.icns.tmp');
-  try {
-    copyFileSync(icon, stagedIcon);
-    run('/usr/bin/plutil', ['-replace', 'CFBundleIconFile', '-string', 'AI Brain OS.icns', path.join(appPath, 'Contents', 'Info.plist')]);
-    renameSync(stagedIcon, targetIcon);
-  } finally { rmSync(stagedIcon, { force: true }); }
 }
 
 function assertMac() {
