@@ -1,0 +1,6 @@
+{
+  "root": "../ai-brain-gedaechtnis",
+  "port": 3210,
+  "exclude": [],
+  "maxNoteBytes": 2097152
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.npm-cache/
+config.local.json
+.test-work/
+.DS_Store
+.claude/
+.codex/
+.agents/
