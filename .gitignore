@@ -7,3 +7,5 @@ config.local.json
 .settings-work/
 .DS_Store
 .codex/
+*.icns
+*.iconset/

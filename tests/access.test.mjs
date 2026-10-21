@@ -59,3 +59,25 @@ test('Dock change preserves data, date and nested values; add is idempotent and 
     assert.equal(run('remove', appURL), 'unchanged');
   } finally { rmSync(work, { recursive: true, force: true }); }
 });
+
+test('SVG renders a valid macOS icon package at standard and Retina sizes', { skip: process.platform !== 'darwin' }, () => {
+  const root = path.join(process.cwd(), '.test-work');
+  mkdirSync(root, { recursive: true });
+  const work = mkdtempSync(path.join(root, 'icon-'));
+  const icon = path.join(work, 'brain.icns');
+  const extracted = path.join(work, 'brain.iconset');
+  try {
+    execFileSync('/usr/bin/swift', [path.join(process.cwd(), 'scripts', 'build-icon.swift'), path.join(process.cwd(), 'assets', 'icon-chip-hirn.svg'), icon]);
+    execFileSync('/usr/bin/iconutil', ['-c', 'iconset', icon, '-o', extracted]);
+    for (const [name, pixels] of [
+      ['16x16', 16], ['16x16@2x', 32], ['32x32', 32], ['32x32@2x', 64],
+      ['128x128', 128], ['128x128@2x', 256], ['256x256', 256],
+      ['256x256@2x', 512], ['512x512', 512], ['512x512@2x', 1024]
+    ]) {
+      const png = path.join(extracted, `icon_${name}.png`);
+      const info = execFileSync('/usr/bin/sips', ['-g', 'pixelWidth', '-g', 'pixelHeight', png], { encoding: 'utf8' });
+      assert.match(info, new RegExp(`pixelWidth: ${pixels}\\b`));
+      assert.match(info, new RegExp(`pixelHeight: ${pixels}\\b`));
+    }
+  } finally { rmSync(work, { recursive: true, force: true }); }
+});

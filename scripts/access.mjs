@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, renameSync, rmSync, copyFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +23,24 @@ function dockModify(add) {
   }
 }
 
+function buildIcon(work) {
+  const icon = path.join(work, 'AI Brain OS.icns');
+  run('/usr/bin/swift', [path.join(base, 'scripts', 'build-icon.swift'), path.join(base, 'assets', 'icon-chip-hirn.svg'), icon]);
+  return icon;
+}
+
+function setAppIcon(appPath, icon) {
+  const resources = path.join(appPath, 'Contents', 'Resources');
+  mkdirSync(resources, { recursive: true });
+  const targetIcon = path.join(resources, 'AI Brain OS.icns');
+  const stagedIcon = path.join(resources, '.AI Brain OS.icns.tmp');
+  try {
+    copyFileSync(icon, stagedIcon);
+    run('/usr/bin/plutil', ['-replace', 'CFBundleIconFile', '-string', 'AI Brain OS.icns', path.join(appPath, 'Contents', 'Info.plist')]);
+    renameSync(stagedIcon, targetIcon);
+  } finally { rmSync(stagedIcon, { force: true }); }
+}
+
 function assertMac() {
   if (process.platform !== 'darwin') throw new Error('Einrichtung ist nur auf macOS möglich.');
   if (process.getuid() === 0) throw new Error('Bitte als angemeldeter Benutzer, nicht mit sudo, ausführen.');
@@ -40,11 +58,13 @@ async function install(work) {
     if (listeners.trim()) throw new Error(`Port ${port} ist bereits belegt. Laufenden Server selbst beenden und Einrichtung erneut starten.`);
   } catch (error) { if (error.message?.includes('bereits belegt')) throw error; if (error.status !== 1) throw error; }
 
+  const icon = buildIcon(work);
   const source = path.join(work, 'dock.applescript');
   const stagedApp = path.join(work, APP_NAME);
   const stagedPlist = path.join(work, `${LABEL}.plist`);
   writeFileSync(source, appScript(port));
   run('/usr/bin/osacompile', ['-o', stagedApp, source]);
+  setAppIcon(stagedApp, icon);
   writeFileSync(stagedPlist, agentPlist(process.execPath, path.join(base, 'scripts', 'service-launcher.mjs'), base));
   run('/usr/bin/plutil', ['-lint', stagedPlist]);
   mkdirSync(path.dirname(app), { recursive: true });
@@ -75,11 +95,15 @@ function uninstall() {
   console.log('AI Brain OS Dienst, Dock-App, Startdatei und Protokolle entfernt.');
 }
 
-function update() {
+function update(work) {
   if (!existsSync(plist)) throw new Error('Dienst ist nicht installiert.');
   run('npm', ['ci'], { cwd: base, stdio: 'inherit' });
   run('npm', ['run', 'build'], { cwd: base, stdio: 'inherit' });
+  if (!existsSync(app)) throw new Error('Dock-App fehlt. Bitte Installation prüfen.');
+  const icon = buildIcon(work);
+  setAppIcon(app, icon);
   run('/bin/launchctl', ['kickstart', '-k', `${target}/${LABEL}`]);
+  try { run('/usr/bin/killall', ['Dock']); } catch { /* Dock startet bei Bedarf erneut. */ }
   console.log('Code aktualisiert und Dienst neu gestartet. Bei geändertem Port: uninstall und install ausführen.');
 }
 
@@ -94,7 +118,7 @@ if (!['install', 'uninstall', 'update'].includes(command)) {
     work = mkdtempSync(path.join(base, '.access-work', 'run-'));
     if (command === 'install') await install(work);
     else if (command === 'uninstall') uninstall();
-    else update();
+    else update(work);
   } catch (error) {
     console.error(`Zugang: ${error.message}`);
     process.exitCode = 1;

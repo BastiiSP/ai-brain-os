@@ -23,11 +23,13 @@ node scripts/access.mjs install
 
 Das Skript führt `npm ci` und den Build aus, legt einen Benutzer-LaunchAgent unter `~/Library/LaunchAgents/io.github.ai-brain-os.local.plist` und die Dock-App unter `~/Applications/AI Brain OS.app` an und fügt sie dem Dock hinzu. Der Dienst startet bei der Anmeldung und wird nach Prozessende neu gestartet. Die App öffnet die lokale Oberfläche mit einem Klick. Wenn sie den Dienst nicht erreicht, zeigt sie einen Dialog mit einem Hinweis. Ein bereits belegter konfigurierter Port führt zum Abbruch; einen vorhandenen Server beendet das Skript nicht. Vor der Einrichtung einen manuell gestarteten `npm start` selbst beenden.
 
-Nach Codeänderungen aktualisieren (Build und Dienstneustart):
+Nach Codeänderungen aktualisieren (Build, Dienstneustart und Dock-Icon):
 
 ```bash
 node scripts/access.mjs update
 ```
+
+Das Dock-Icon „Chip-Hirn“ stammt aus [`assets/icon-chip-hirn.svg`](assets/icon-chip-hirn.svg). `install` und `update` erzeugen daraus lokal mit Swift/AppKit ein Icon-Paket mit 16 bis 1024 Pixeln einschließlich Retina-Größen. Die erzeugte `.icns`-Datei liegt nur in der installierten App und wird nicht versioniert. `update` ersetzt das Icon einer bestehenden App ohne Ausbau; der Dock-Eintrag bleibt erhalten. Die Darstellung in Dock, Finder und App-Umschalter prüft KI A auf dem Mac.
 
 Nach einer Änderung von `config.local.json`, insbesondere des Ports, erst entfernen und neu einrichten, damit Dock-App und Dienst dieselbe Adresse verwenden. Vollständig ausbauen:
 
