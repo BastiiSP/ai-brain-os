@@ -5,7 +5,7 @@ Die gemeinsamen Regeln einschließlich KI-Rollen stehen im übergeordneten `../A
 
 ## Entwicklungsstand und Ziel
 
-- Lieferstand 1 ist umgesetzt und am 21.10.2026 von KI A unabhängig abgenommen (Commit `b9a96a3`, vor Umschreiben der Commit-Adresse `5df69a4`): lesende lokale Web-Anwendung für das Gedächtnis. Start mit `npm start`, Bedienung und Prüfbefehle in `README.md`. Weitere Lieferstände befinden sich in Anforderungsklärung mit Basti.
+- Lieferstand 1 ist umgesetzt und am 21.10.2026 von KI A unabhängig abgenommen (Commit `b9a96a3`, vor Umschreiben der Commit-Adresse `5df69a4`): lesende lokale Web-Anwendung für das Gedächtnis. Start mit `npm start`, Bedienung und Prüfbefehle in `README.md`. Konzept für die Lieferstände 2–8 am 21.10.2026 von Basti freigegeben; Lieferstand 2 (Zugang) in Umsetzung.
 - AI Brain OS soll die anpassbare interaktive Ansicht und Bedienoberfläche des vorhandenen Gedächtnisses werden. Bestätigt sind Suche, Verknüpfungen relevanter Dateien, visuelle Aufbereitung, persönliches Gedächtnis, Denkpartner und Arbeitszentrale.
 - Dokumente und Links sollen einfach einbringbar sein; relevantes Wissen später automatisch extrahieren, einordnen und mit vorhandenen Inhalten verknüpfen. Ein gezielter Wissenschat ist vorgesehen.
 - Für Lieferstand 1 von KI A gewählt: lokale Web-Anwendung mit Node.js-LTS und TypeScript, Server nur an `127.0.0.1`, Index nur im Arbeitsspeicher; Begründung in der Projektnotiz. Oberfläche, Verarbeitungsablauf und Architektur späterer Lieferstände sowie die Anbindung von ChatGPT, Codex, Claude und Claude Code sind offen. Keine eingerichtete Verbindung unterstellen.
@@ -30,11 +30,16 @@ Bei Prompt-Anfragen gilt das gemeinsame Verfahren im Hauptordner mit dem lokalen
 
 ## Lieferstände
 
-Lieferstand 1 ist umgesetzt und abgenommen; Erfolgskriterien, Prüfergebnis und optionale Verbesserungen stehen in der Projektnotiz. Lieferstände 2 und 3 sind noch von KI A zu konkretisieren und mit Erfolgskriterien zu versehen:
+Lieferstand 1 ist umgesetzt und abgenommen. Für die Lieferstände 2–8 gilt das am 21.10.2026 von Basti freigegebene Konzept in der Projektnotiz (Abschnitt „Konzept Weiterentwicklung – Lieferstände 2 bis 7“, Lieferstand 8 dort angehängt) mit gemeinsamen Grenzen G1–G6, Erfolgskriterien und Auftragsrahmen. Reihenfolge:
 
-1. Umgesetzt: Auf Bastis Mac lokal nutzbare Ansicht: bestehendes Gedächtnis durchsuchen, Notizen lesen und vorhandenen Links folgen. Externe Dateiänderungen sind nach Aktualisierung sichtbar. Erste Wissensanbindung ausschließlich lesend; Originale erhalten.
-2. Nachvollziehbarer Import von Dokumenten und Links einschließlich Herkunft, Wiederholungen und Fehlerbehandlung.
-3. Gezielter Wissenschat mit Quellen und bewusster Übernahme von Erkenntnissen.
+1. Umgesetzt: lesende lokale Ansicht des Gedächtnisses mit Suche, Lesen und Verknüpfungen.
+2. Einfacher Zugang: Autostart, Neustart nach Absturz, Klick im Dock, nur lokal.
+3. Aussehen: Farbwelt Agile Heroes Intelligence, Nunito und Monospace lokal, hell/dunkel.
+4. 3D-Wissensansicht als Platine: Notizen als Chips, Links als Leiterbahnen.
+5. Ordnernavigation: abgestufte Farben, Ausblenden, Anzahl, Reihenfolge, Anheften; einziger Schreibzugriff auf das Gedächtnis ist die Einstellungsdatei `.ai-brain-os/einstellungen.json`.
+6. Optional und später: Assistent mit Quellen (ersetzt den bisherigen Wissenschat).
+7. Später: nachvollziehbarer Import von Dokumenten und Links.
+8. Später festgehalten: Ordner wirklich umbenennen mit Linkpflege, nur auf ausdrücklichen Auftrag.
 
 ## Dieses Dateipaar pflegen
 
