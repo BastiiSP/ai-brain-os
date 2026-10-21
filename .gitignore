@@ -4,6 +4,4 @@ dist/
 config.local.json
 .test-work/
 .DS_Store
-.claude/
 .codex/
-.agents/
