@@ -1,7 +1,7 @@
-import { spawn } from 'node:child_process';
 import { mkdirSync, openSync, closeSync, writeSync, renameSync, statSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { format } from 'node:util';
 import { LOG_LIMIT } from './access-lib.mjs';
 
 const logDir = path.join(os.homedir(), 'Library', 'Logs', 'AI Brain OS');
@@ -27,13 +27,9 @@ function record(chunk) {
   size += bytes.length;
 }
 record(`\n[${new Date().toISOString()}] Dienststart\n`);
-const child = spawn(process.execPath, ['dist/src/main.js'], { cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'] });
-child.stdout.on('data', record);
-child.stderr.on('data', record);
-for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => child.kill(signal));
-child.on('error', error => { record(`Startfehler: ${error.message}\n`); process.exitCode = 1; });
-child.on('exit', (code, signal) => {
-  record(`[${new Date().toISOString()}] Server beendet: ${signal ?? code}\n`);
-  closeSync(fd);
-  process.exit(code === 0 && !signal ? 0 : 1);
-});
+for (const level of ['log', 'error', 'warn']) console[level] = (...args) => record(`${format(...args)}\n`);
+process.on('uncaughtExceptionMonitor', error => record(`Unbehandelter Fehler: ${error.stack ?? error}\n`));
+process.on('warning', warning => record(`Warnung: ${warning.stack ?? warning}\n`));
+process.on('exit', code => { record(`[${new Date().toISOString()}] Dienstende: ${code}\n`); closeSync(fd); });
+try { await import('../dist/src/main.js'); }
+catch (error) { console.error('Start fehlgeschlagen:', error); process.exitCode = 1; }

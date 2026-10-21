@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, renameSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LABEL, APP_NAME, agentPlist, appScript, dockEntry, isOurDockEntry } from './access-lib.mjs';
+import { LABEL, APP_NAME, agentPlist, appScript } from './access-lib.mjs';
+import { pathToFileURL } from 'node:url';
 
 const base = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const home = os.homedir();
@@ -15,23 +16,11 @@ const target = `gui/${process.getuid()}`;
 const command = process.argv[2];
 const run = (file, args, options = {}) => execFileSync(file, args, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], ...options });
 
-function dockModify(add, work) {
-  let prefs;
-  try {
-    const xml = run('/usr/bin/defaults', ['export', 'com.apple.dock', '-']);
-    prefs = JSON.parse(run('/usr/bin/plutil', ['-convert', 'json', '-o', '-', '-'], { input: xml }));
-  } catch (error) { throw new Error(`Dock-Einstellungen konnten nicht gelesen werden: ${error.message}`); }
-  const entries = Array.isArray(prefs['persistent-apps']) ? prefs['persistent-apps'] : [];
-  const filtered = entries.filter(entry => !isOurDockEntry(entry, app));
-  if (add) filtered.push(dockEntry(app));
-  if (filtered.length === entries.length && !add) return;
-  prefs['persistent-apps'] = filtered;
-  const json = path.join(work, 'dock.json');
-  const binary = path.join(work, 'dock.plist');
-  writeFileSync(json, JSON.stringify(prefs));
-  run('/usr/bin/plutil', ['-convert', 'binary1', '-o', binary, json]);
-  run('/usr/bin/defaults', ['import', 'com.apple.dock', binary]);
-  try { run('/usr/bin/killall', ['Dock']); } catch { /* Dock startet bei Bedarf erneut. */ }
+function dockModify(add) {
+  const result = run('/usr/bin/swift', [path.join(base, 'scripts', 'dock-entry.swift'), add ? 'add' : 'remove', pathToFileURL(`${app}/`).href]);
+  if (result.trim() === 'changed') {
+    try { run('/usr/bin/killall', ['Dock']); } catch { /* Dock startet bei Bedarf erneut. */ }
+  }
 }
 
 function assertMac() {
@@ -64,7 +53,7 @@ async function install(work) {
   renameSync(stagedPlist, plist);
   try {
     run('/bin/launchctl', ['bootstrap', target, plist]);
-    dockModify(true, work);
+    dockModify(true);
   } catch (error) {
     try { run('/bin/launchctl', ['bootout', target, plist]); } catch { /* Job eventuell nicht geladen. */ }
     rmSync(plist, { force: true });
@@ -74,12 +63,12 @@ async function install(work) {
   console.log(`Installiert: ${app}\nDienst: ${LABEL}\nProtokoll: ${path.join(logDir, 'server.log')}`);
 }
 
-function uninstall(work) {
+function uninstall() {
   if (existsSync(plist)) {
     try { run('/bin/launchctl', ['bootout', target, plist]); }
     catch (error) { if (!String(error.stderr).includes('No such process') && !String(error.stderr).includes('Could not find service')) throw error; }
   }
-  dockModify(false, work);
+  dockModify(false);
   rmSync(plist, { force: true });
   rmSync(app, { recursive: true, force: true });
   rmSync(logDir, { recursive: true, force: true });
@@ -104,7 +93,7 @@ if (!['install', 'uninstall', 'update'].includes(command)) {
     mkdirSync(path.join(base, '.access-work'), { recursive: true });
     work = mkdtempSync(path.join(base, '.access-work', 'run-'));
     if (command === 'install') await install(work);
-    else if (command === 'uninstall') uninstall(work);
+    else if (command === 'uninstall') uninstall();
     else update();
   } catch (error) {
     console.error(`Zugang: ${error.message}`);
