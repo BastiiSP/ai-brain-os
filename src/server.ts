@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Vault } from './vault.js';
 
-const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const headers = { 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' } });
 export function localOrigin(host: string | null | undefined, port: number): string | undefined {
@@ -14,7 +14,9 @@ export function createHandler(vault: Vault, base = process.cwd()) {
     '/': ['public/index.html', 'text/html; charset=utf-8'],
     '/style.css': ['public/style.css', 'text/css; charset=utf-8'],
     '/app.js': ['dist/src/client.js', 'text/javascript; charset=utf-8'],
-    '/purify.js': ['node_modules/dompurify/dist/purify.min.js', 'text/javascript; charset=utf-8']
+    '/purify.js': ['node_modules/dompurify/dist/purify.min.js', 'text/javascript; charset=utf-8'],
+    '/fonts/nunito-latin-wght-normal.woff2': ['public/fonts/nunito-latin-wght-normal.woff2', 'font/woff2'],
+    '/fonts/jetbrains-mono-latin-wght-normal.woff2': ['public/fonts/jetbrains-mono-latin-wght-normal.woff2', 'font/woff2']
   };
   return async (request: Request): Promise<Response> => {
     const url = new URL(request.url);

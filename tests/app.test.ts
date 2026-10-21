@@ -53,6 +53,21 @@ async function use(fn: (f: Awaited<ReturnType<typeof fixture>>) => Promise<void>
 }
 const get = (route: string) => new Request(origin + route);
 
+test('A3/G2: lokale Schriftdateien und restriktive CSP', () => use(async ({ handler }) => {
+  for (const font of ['nunito-latin-wght-normal', 'jetbrains-mono-latin-wght-normal']) {
+    const response = await handler(get('/fonts/' + font + '.woff2'));
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'font/woff2');
+    assert.equal(Buffer.from(await response.arrayBuffer()).toString('ascii', 0, 4), 'wOF2');
+    const csp = response.headers.get('content-security-policy') ?? '';
+    assert(csp.includes("font-src 'self'"));
+    assert(csp.includes("default-src 'none'"));
+  }
+  const page = await handler(get('/'));
+  assert.equal(page.status, 200);
+  assert(!(await page.text()).includes('https://'));
+}));
+
 test('E2: Navigation entspricht unabhängig festgelegter sichtbarer Dateiliste', () => use(async ({ vault, files }) => {
   const expected = Object.keys(files).filter(p => !p.split('/').some(s => s.startsWith('.')) && !p.startsWith('Privat/') && !defaultExcludes.includes(p)).sort();
   assert.deepEqual(vault.snapshot.entries.filter(e => e.kind !== 'folder').map(e => e.path).sort(), expected);

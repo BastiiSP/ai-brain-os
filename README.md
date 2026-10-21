@@ -1,4 +1,4 @@
-# AI Brain OS · Lieferstand 2
+# AI Brain OS · Lieferstand 3
 
 Lokale, ausschließlich lesende Ansicht eines Markdown-Gedächtnisses: Ordnernavigation, Notizen mit Metadaten, Volltextsuche, Wikilinks und Markdown-Links, Rückverweise und Übersicht offener Verknüpfungen. Der Index lebt nur im Arbeitsspeicher. Keine Datenbank, keine Kopie des Gedächtnisses, kein externer Dienst.
 
@@ -54,6 +54,9 @@ Ohne Konfigurationsdatei wird `../ai-brain-gedaechtnis` gelesen. Optional `confi
 
 ## Nutzung
 
+- Oben zwischen **Fakten** und **3D** wechseln. Die 3D-Ansicht zeigt bis Lieferstand 4 einen Platzhalter; mit „Zur Faktenansicht“ gelangst du zur zuletzt geöffneten Faktenadresse zurück.
+- **Hell**, **Dunkel** oder **System** wählen. Die Wahl wird im Browser gespeichert; „System“ folgt der Betriebssystemeinstellung. Die Oberfläche beachtet „Bewegung reduzieren“. Bei gesperrtem Browser-Speicher gilt vorübergehend „System“.
+- Nunito für Fließtext und JetBrains Mono für Pfade, Metadaten und Zähler werden lokal ausgeliefert. Die WOFF2-Dateien und OFL-Lizenzen stehen unter `public/fonts/`; zur Laufzeit werden keine Schriften aus dem Netz geladen. Quelle der vier Dateien: `@fontsource-variable/nunito@5.3.0` und `@fontsource-variable/jetbrains-mono@5.3.0`, jeweils `files/*-latin-wght-normal.woff2` und `LICENSE`. Diese Pakete sind keine Laufzeitabhängigkeiten.
 - Links einen Ordner aufklappen oder „Ordner öffnen“ wählen; Notizen und Anhänge haben eigene URLs.
 - Suche mit Eingabetaste oder „Suchen“ auslösen. Durchsucht Titel, Pfad, Text und Frontmatter; Titeltreffer stehen zuerst, Ergebnisse enthalten Textausschnitte.
 - „Aktualisieren“ liest den gesamten Bestand neu. Die aktuelle Ansicht wird erneut geladen, gelöschte Notizen erhalten eine verständliche Meldung. Zeitpunkt und Dauer stehen oben. Es gibt keine automatische Live-Aktualisierung.
@@ -80,7 +83,7 @@ npm run check:lsp
 npm audit
 ```
 
-Tests erzeugen und entfernen ihr eigenes Gedächtnis unter `.test-work/`. Sie lesen **nie** das reale Gedächtnis. Die 17 Prüfgruppen prüfen Dateiliste, Linkformen und Stufen, NFC, Metadaten, Suche, externe Änderungen, Unverändertheit, Traversal, Symlinks, Ausschlüsse, HTML, HTTP-Schutz und alle E9-Fehlerfälle. Server-Requests laufen direkt über den Fetch-Handler, ohne Port. Der TypeScript-7-LSP wird separat über stdio für alle TypeScript-Dateien abgefragt. Die Meldung `context canceled` beim regulären LSP-Shutdown stammt vom Language Server; maßgeblich sind Diagnosen und Exitcode.
+Tests erzeugen und entfernen ihr eigenes Gedächtnis unter `.test-work/`. Sie lesen **nie** das reale Gedächtnis. Die Prüfgruppen testen Dateiliste, Linkformen und Stufen, NFC, Metadaten, Suche, externe Änderungen, Unverändertheit, Traversal, Symlinks, Ausschlüsse, HTML, HTTP-Schutz, lokale Font-Auslieferung und die E9-Fehlerfälle. Ein eigener Test berechnet WCAG-Kontrastwerte der Farbtoken und prüft die lokalen Schriftlizenzen. Server-Requests laufen direkt über den Fetch-Handler, ohne Port. Der TypeScript-7-LSP wird separat über stdio für alle TypeScript-Dateien abgefragt. Die Meldung `context canceled` beim regulären LSP-Shutdown stammt vom Language Server; maßgeblich sind Diagnosen und Exitcode.
 
 Ein optionaler **rein lesender** Kurztest gegen den konfigurierten Bestand ist ausdrücklich getrennt:
 
@@ -99,7 +102,7 @@ KI A muss am übergebenen Commit noch selbst prüfen: Start/Bindung (`lsof -nP -
 - `src/markdown.ts`: Markdown-Token-Verarbeitung; kein Ersetzen von Wikilinks innerhalb von Code. Roh-HTML wird als Text maskiert, erzeugte Attribute werden escaped.
 - `src/server.ts`: portlos testbarer Request-Handler, feste Asset-Liste, Same-Origin-/Host-Schutz, CSP, kein CORS.
 - `src/main.ts`: Node-HTTP-Adapter mit fester Loopback-Bindung.
-- `src/client.ts`, `public/`: TypeScript-Oberfläche ohne UI-Framework; zusätzliche HTML-Bereinigung mit DOMPurify vor jeder HTML-Einfügung.
+- `src/client.ts`, `public/`: TypeScript-Oberfläche ohne UI-Framework; zusätzliche HTML-Bereinigung mit DOMPurify vor jeder HTML-Einfügung. Farbmodi als CSS-Variablen, Auswahl im Browser-Speicher, lokale variable WOFF2-Schriften und ein 3D-Platzhalter.
 
 Laufzeitabhängigkeiten (exakte Versionen im Lockfile): [markdown-it](https://github.com/markdown-it/markdown-it) für CommonMark/Tabellen und Token-Erweiterungen, [yaml](https://eemeli.org/yaml/) für strukturiertes Frontmatter mit Aliaslimit, [DOMPurify](https://github.com/cure53/DOMPurify) für zusätzliche Bereinigung im Browser. Entwicklung: TypeScript mit integriertem LSP und Node-24-Typen. Node liefert HTTP und Test-Runner; kein zusätzlicher Server, Bundler oder Test-Framework nötig.
 
