@@ -35,7 +35,9 @@ function linkDetails(link: Link) {
 async function route() {
   const ticket = ++generation;
   const params = new URLSearchParams(location.search);
-  const p = params.get('path');
+  const address = params.get('path');
+  const matches = address === null ? [] : state.entries.filter(e => e.path.normalize('NFC') === address.normalize('NFC'));
+  const p = matches.length === 1 ? matches[0]!.path : address;
   const query = params.get('q');
   el<HTMLInputElement>('search').value = query ?? '';
   const commit = (html: string) => { if (ticket === generation) show(html); };
@@ -59,7 +61,7 @@ async function route() {
         commit(`<h1>${escape(entry.title)}</h1><p>${escape(p)}</p><p><a href="${escape(url)}" target="_blank" rel="noopener noreferrer">Anhang öffnen ↗</a></p>${/\.(png|jpe?g|gif|webp|avif|svg)$/i.test(p) ? `<img src="${escape(url)}" alt="${escape(entry.title)}">` : ''}`);
       } else {
         const note = await api<Note & { backlinks: string[] }>('/api/note?path=' + encodeURIComponent(p));
-        commit(`<p class="breadcrumb">${escape(note.path)}</p><h1 class="note-title">${escape(note.title)}</h1>${Object.keys(note.metadata).length ? '<dl class="metadata">' + Object.entries(note.metadata).map(([key, value]) => `<dt>${escape(key)}</dt><dd>${escape(typeof value === 'string' ? value : JSON.stringify(value))}</dd>`).join('') + '</dl>' : ''}${note.warnings.map(w => `<p class="notice">${escape(w)}</p>`).join('')}<article>${note.html}</article><section class="backlinks"><h2>Rückverweise (${note.backlinks.length})</h2>${note.backlinks.length ? '<ul>' + note.backlinks.map(p => `<li>${a(p)}</li>`).join('') + '</ul>' : '<p>Keine Rückverweise.</p>'}</section>`);
+        commit(`<p class="breadcrumb">${escape(note.path)}</p><h1 class="note-title">${escape(note.title)}</h1>${Object.keys(note.metadata).length ? '<dl class="metadata">' + Object.entries(note.metadata).map(([key, value]) => `<dt>${escape(key)}</dt><dd>${escape(Array.isArray(value) ? value.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(', ') : typeof value === 'string' ? value : JSON.stringify(value))}</dd>`).join('') + '</dl>' : ''}${note.warnings.map(w => `<p class="notice">${escape(w)}</p>`).join('')}<article>${note.html}</article><section class="backlinks"><h2>Rückverweise (${note.backlinks.length})</h2>${note.backlinks.length ? '<ul>' + note.backlinks.map(p => `<li>${a(p)}</li>`).join('') + '</ul>' : '<p>Keine Rückverweise.</p>'}</section>`);
       }
     } else {
       commit(`<p class="eyebrow">Dein persönlicher Wissensraum</p><h1>Gedanken wiederfinden.<br>Verbindungen entdecken.</h1><p>Durchsuche dein Gedächtnis oder öffne links einen Ordner. Mit „Aktualisieren“ liest du Änderungen anderer Anwendungen ein.</p><p class="notice">Die Originale bleiben erhalten. Diese Ansicht liest ausschließlich.</p>${state.warnings.length ? '<h2>Hinweise beim Einlesen</h2><ul>' + state.warnings.map(w => `<li>${escape(w)}</li>`).join('') + '</ul>' : ''}`);

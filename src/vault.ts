@@ -26,6 +26,12 @@ export class Vault {
     const n = norm(relative);
     return !this.config.exclude.some(e => n === norm(e.replace(/\/$/, '')) || n.startsWith(norm(e.replace(/\/$/, '')) + '/'));
   }
+  // Match addresses to indexed spellings; never normalize a filesystem path for reading.
+  entryPath(address: string): string | undefined {
+    if (!this.allowed(address)) return undefined;
+    const hits = this.snapshot.entries.filter(e => e.path.normalize('NFC') === address.normalize('NFC') && this.allowed(e.path));
+    return hits.length === 1 ? hits[0]!.path : undefined;
+  }
   // Every read (including attachments) passes this boundary. No writable fs handle exists in application code.
   private async checkedPath(relative: string): Promise<string> {
     if (!this.allowed(relative)) throw new AccessError('Datei nicht verfügbar.');
@@ -130,6 +136,7 @@ export class Vault {
     if (/^https?:\/\//i.test(target) || /^mailto:/i.test(target)) return { ...result, kind: 'external', targets: [target] };
     try { name = decodeURIComponent(name); anchor = decodeURIComponent(anchor); } catch { return result; }
     result.anchor = anchor;
+    if (pipe < 0 && hash === 0) result.label = anchor;
     if (!name && hash >= 0) name = source;
     if (!name || /^[a-z][a-z\d+.-]*:/i.test(name) || name.startsWith('/') || name.includes('\\') || name.split('/').some(x => x.startsWith('.') && x !== '.' && x !== '..')) return result;
     const rooted = path.posix.normalize(name);
@@ -156,6 +163,6 @@ export class Vault {
       return titleMatch || norm(note.path).includes(q) || index >= 0 ? [{ path: note.path, title: note.title, titleMatch, snippet: text.slice(Math.max(0, index - 70), Math.max(0, index - 70) + 220) }] : [];
     }).sort((a, b) => Number(b.titleMatch) - Number(a.titleMatch) || a.path.localeCompare(b.path, 'de'));
   }
-  backlinks(target: string) { return [...this.snapshot.notes.values()].filter(n => n.links.some(l => l.kind === 'resolved' && l.targets[0] === target)).map(n => n.path); }
+  backlinks(target: string) { return [...this.snapshot.notes.values()].filter(n => n.path !== target && n.links.some(l => l.kind === 'resolved' && l.targets[0] === target)).map(n => n.path); }
   issues() { return [...this.snapshot.notes.values()].flatMap(n => n.links.filter(l => l.kind === 'missing' || l.kind === 'ambiguous').map(l => ({ source: n.path, ...l }))); }
 }

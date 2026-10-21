@@ -5,8 +5,11 @@ import { Vault } from './vault.js';
 const CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const headers = { 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' } });
+export function localOrigin(host: string | null | undefined, port: number): string | undefined {
+  return host === `127.0.0.1:${port}` || host === `localhost:${port}` ? `http://${host}` : undefined;
+}
+
 export function createHandler(vault: Vault, base = process.cwd()) {
-  const origin = `http://127.0.0.1:${vault.config.port}`;
   const assets: Record<string, [string, string]> = {
     '/': ['public/index.html', 'text/html; charset=utf-8'],
     '/style.css': ['public/style.css', 'text/css; charset=utf-8'],
@@ -15,7 +18,8 @@ export function createHandler(vault: Vault, base = process.cwd()) {
   };
   return async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
-    if (url.origin !== origin || (request.headers.has('origin') && request.headers.get('origin') !== origin) || request.headers.get('sec-fetch-site') === 'cross-site') return json({ error: 'Zugriff nur über die lokale Anwendung.' }, 403);
+    const origin = localOrigin(url.host, vault.config.port);
+    if (!origin || url.origin !== origin || (request.headers.has('host') && request.headers.get('host') !== url.host) || (request.headers.has('origin') && request.headers.get('origin') !== origin) || request.headers.get('sec-fetch-site') === 'cross-site') return json({ error: 'Zugriff nur über die lokale Anwendung.' }, 403);
     if (request.method !== 'GET' && !(request.method === 'POST' && url.pathname === '/api/refresh')) return json({ error: 'Methode nicht erlaubt.' }, 405);
     try {
       if (url.pathname === '/api/refresh') {
@@ -27,12 +31,12 @@ export function createHandler(vault: Vault, base = process.cwd()) {
       if (url.pathname === '/api/search') return json(vault.search(url.searchParams.get('q') ?? ''));
       if (url.pathname === '/api/issues') return json(vault.issues());
       if (url.pathname === '/api/resolve') {
-        const source = url.searchParams.get('source') ?? '';
+        const source = vault.entryPath(url.searchParams.get('source') ?? '') ?? '';
         if (!vault.snapshot.notes.has(source)) return json({ error: 'Quellnotiz nicht verfügbar.' }, 404);
         return json(vault.resolve(url.searchParams.get('link') ?? '', source));
       }
       if (url.pathname === '/api/note' || url.pathname === '/api/file') {
-        const p = url.searchParams.get('path') ?? '';
+        const p = vault.entryPath(url.searchParams.get('path') ?? '') ?? '';
         if (!vault.allowed(p) || !vault.snapshot.entries.some(e => e.path === p && e.kind !== 'folder')) return json({ error: 'Datei nicht verfügbar.' }, 404);
         // Recheck the live filesystem, even for cached notes, so replaced symlinks/deleted files fail closed.
         await vault.verify(p);

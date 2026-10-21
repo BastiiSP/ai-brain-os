@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, writeFile, readFile, rename, rm, symlink, readdir, stat
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { Vault } from '../src/vault.js';
-import { createHandler } from '../src/server.js';
+import { createHandler, localOrigin } from '../src/server.js';
 import { defaultExcludes, loadConfig } from '../src/config.js';
 
 const origin = 'http://127.0.0.1:3210';
@@ -228,4 +228,63 @@ test('E1/E10: Konfiguration und Standardausschluss sind überprüfbar', () => us
   assert.equal((await loadConfig(base)).root, path.join(base, 'memory'));
   await writeFile(path.join(base, 'config.local.json'), '{"port": "unsafe"}');
   await assert.rejects(loadConfig(base));
+}));
+
+test('K1/E8: Exakte lokale Hosts und jeweils eigene Herkunft bleiben erforderlich', () => use(async ({ handler }) => {
+  for (const host of ['127.0.0.1:3210', 'localhost:3210']) {
+    const local = `http://${host}`;
+    assert.equal(localOrigin(host, 3210), local);
+    for (const route of ['/', '/api/state', '/api/note?path=Start.md']) {
+      assert.equal((await handler(new Request(local + route, { headers: { Host: host, Origin: local } }))).status, 200);
+    }
+    assert.equal((await handler(new Request(local + '/api/refresh', { method: 'POST', headers: { Origin: local, 'X-Brain-Request': '1' } }))).status, 200);
+    for (const foreign of ['null', 'https://evil.test', 'http://localhost:3211', host.startsWith('localhost') ? origin : 'http://localhost:3210']) {
+      assert.equal((await handler(new Request(local + '/api/state', { headers: { Origin: foreign } }))).status, 403);
+      assert.equal((await handler(new Request(local + '/api/refresh', { method: 'POST', headers: { Origin: foreign, 'X-Brain-Request': '1' } }))).status, 403);
+    }
+    assert.equal((await handler(new Request(local + '/api/state', { headers: { 'Sec-Fetch-Site': 'cross-site' } }))).status, 403);
+    assert.equal((await handler(new Request(local + '/api/state', { headers: { Host: 'evil.test:3210' } }))).status, 403);
+  }
+  for (const host of [undefined, 'localhost', 'localhost:3211', 'localhost.evil.test:3210', 'localhost.:3210', '127.0.0.2:3210', '[::1]:3210', 'evil.test:3210']) assert.equal(localOrigin(host, 3210), undefined);
+  for (const url of ['http://localhost.evil.test:3210', 'http://localhost:3211', 'https://localhost:3210']) assert.equal((await handler(new Request(url + '/api/state'))).status, 403);
+}));
+
+test('K2/E8: NFC/NFD-Adressen für Notizen, Anhänge und Quellen mit unveränderten Grenzen', () => use(async ({ vault, put, handler, root, base }) => {
+  const note = 'Übersicht/Über mich.md'.normalize('NFD');
+  const attachment = 'Übersicht/Bildü.png'.normalize('NFD');
+  await put(note, '# Über mich\n[[#Über mich]]');
+  await put(attachment, 'Bildinhalt');
+  await put('Privät/Öffentlich.md'.normalize('NFD'), 'VERTRAULICH');
+  vault.config.exclude.push('Privät');
+  await vault.refresh();
+  for (const form of ['NFC', 'NFD'] as const) {
+    const address = note.normalize(form);
+    const response = await handler(get('/api/note?path=' + encodeURIComponent(address)));
+    assert.equal(response.status, 200);
+    assert.equal((await response.json() as { path: string }).path.normalize('NFC'), note.normalize('NFC'));
+    assert.equal((await handler(get('/api/file?path=' + encodeURIComponent(attachment.normalize(form))))).status, 200);
+    assert.equal((await handler(get('/api/resolve?source=' + encodeURIComponent(address) + '&link=%23Über%20mich'))).status, 200);
+    for (const forbidden of ['00 Kontext/Tokens & Zugänge.md', 'Privät/Öffentlich.md', '.Übersicht/Über mich.md', '../Übersicht/Über mich.md', '/Übersicht/Über mich.md', 'Übersicht/../Über mich.md', 'Alias/Übergaben.md']) {
+      for (const endpoint of ['note', 'file']) assert.equal((await handler(get(`/api/${endpoint}?path=${encodeURIComponent(forbidden.normalize(form))}`))).status, 404, forbidden);
+    }
+  }
+  await rm(path.join(root, note));
+  await symlink(path.join(base, 'outside.md'), path.join(root, note));
+  for (const form of ['NFC', 'NFD'] as const) assert.equal((await handler(get('/api/note?path=' + encodeURIComponent(note.normalize(form))))).status, 422);
+}));
+
+test('K4/K5: Nur fremde Rückverweise, lesbare Selbstanker und Vorrang expliziter Aliasse', () => use(async ({ vault, put, handler }) => {
+  await put('Selbst.md', '# Überschrift\n[[#Überschrift]] [[#Überschrift|Mein Alias]] [[#Überschrift|#Absicht]] [[Selbst#Überschrift]]');
+  await put('Andere.md', '[[Selbst#Überschrift]] [[Selbst]]');
+  await vault.refresh();
+  assert.deepEqual(vault.backlinks('Selbst.md'), ['Andere.md']);
+  assert.deepEqual(vault.backlinks('A/Daily.md'), []);
+  const response = await handler(get('/api/note?path=Selbst.md'));
+  const note = await response.json() as { html: string; backlinks: string[] };
+  assert.deepEqual(note.backlinks, ['Andere.md']);
+  assert(note.html.includes('>Überschrift</a>'));
+  assert(!note.html.includes('>#Überschrift</a>'));
+  assert(note.html.includes('>Mein Alias</a>'));
+  assert(note.html.includes('>#Absicht</a>'));
+  assert.equal(vault.resolve('#%C3%9Cberschrift', 'Selbst.md').label, 'Überschrift');
 }));

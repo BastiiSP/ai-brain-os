@@ -1,3 +1,55 @@
+# Übergabe Lieferstand 1 · Korrekturrunde 1 · 21.10.2026
+
+**KI B:** Codex, Umsetzung und eigene Prüfung. **KI A:** Claude Code, Planung und unabhängige Prüfung. Auftraggeber: Basti.
+
+**Versionsstand:** Branch `main`, Basis `90bb326ea46e32afe9914c88a9194af3e5d32876`, dazu der uncommittierte Diff der acht unten genannten Dateien. Kein Commitversuch, da `.git` laut geltenden Schreibrechten nur lesbar ist. KI A soll den Stand unverändert committen, Codex als Umsetzer nennen und diesen Commit unabhängig prüfen. Der ursprüngliche Lieferstand wurde von KI A an `5df69a4` abgenommen; die nachstehende historische Übergabe beschreibt den damaligen Zustand, nicht den aktuellen Abnahmestatus.
+
+## Ziel, Grenzen und Planprüfung
+
+Alle sechs beauftragten Korrekturen umgesetzt, keine wesentlichen Einwände oder zusätzlichen Funktionsänderungen. E1–E11 bleiben maßgeblich. Keine neuen Abhängigkeiten, keine Änderungen an AGENTS.md/CLAUDE.md oder am Gedächtnis. Automatisierte Tests ausschließlich mit eigenen temporären Daten unter `.test-work/`. Der Startversuch las den realen Bestand nur ein.
+
+## Lösungen und Nachweise je Punkt
+
+| Punkt | Lösung | Eigener Nachweis |
+| --- | --- | --- |
+| 1 · localhost | Gemeinsame exakte Host-Freigabe für `localhost:<Port>` und `127.0.0.1:<Port>`; Adapter erhält den tatsächlichen Ursprung. Origin muss zum jeweiligen Host passen; keine gegenseitige Cross-Origin-Freigabe. Bindung bleibt 127.0.0.1. | K1/E8 prüft beide Einstiege, Assets/Notiz/Refresh, fremde Hosts, Ports, HTTPS, Host-Abweichungen, fremde/null-Origin und Cross-Site. Echter Start und `lsof` erfolgreich. |
+| 2 · Unicode-Adressen | NFC-Vergleich mit sichtbaren Indexeinträgen in Frontend und API, anschließend Zugriff über den Originalpfad. Mehrdeutige normalisierte Pfade werden in der API abgewiesen. Ausschlussprüfung vor Zuordnung, bestehende Live-Datei- und Symlinkprüfung danach. Auch Resolve-Quellen und Anhänge berücksichtigt. | K2/E8 prüft NFC/NFD-Notiz, Anhang und Quelle, Standard- und konfigurierten Umlautausschluss, versteckte Pfade, Traversal/absolute Pfade und nachträglichen Symlink-Austausch. Bestehende E8-Tests bleiben grün. |
+| 3 · Frontmatter | Listenwerte kommagetrennt statt JSON-Array; HTML-Escaping bleibt wirksam. | Codeprüfung; visuelle Browserprüfung offen. Komplexe Objekte innerhalb von Listen behalten JSON-Darstellung. |
+| 4 · Rückverweise | Quellnotiz gleich Zielnotiz wird ausgeschlossen. | K4/K5 prüft Selbstanker, ausgeschriebenen Selbstlink, fremde Links und API-Rückverweise; fremde Notiz erscheint nur einmal. |
+| 5 · Ankertext | Selbstanker ohne Alias verwenden den dekodierten Anker als Text ohne führendes `#`. | K4/K5 prüft erzeugtes HTML, Umlaut/Prozentkodierung und explizite Aliasse einschließlich absichtlichem `#`. |
+| 6 · Suchen | Suchschaltfläche schrumpft nicht und bleibt einzeilig (`flex-shrink:0`, `white-space:nowrap`, `overflow-wrap:normal`); Eingabefeld darf weiterhin schrumpfen. | CSS-Prüfung; visuelle Prüfung bei 1024 px offen. |
+
+## Geänderte Dateien
+
+- `src/main.ts`: Hostprüfung und Erhaltung des Request-Ursprungs.
+- `src/server.ts`: gemeinsame Host-Freigabe, Same-Origin-Prüfung, Pfad-/Quellzuordnung.
+- `src/vault.ts`: Zuordnung normalisierter Adressen, Selbstankertext, Rückverweise.
+- `src/client.ts`: Unicode-Adressen und lesbare Frontmatter-Listen.
+- `public/style.css`: Suchschaltfläche.
+- `tests/app.test.ts`: drei zusätzliche Prüfgruppen K1, K2 und K4/K5.
+- `README.md`: neue Einstiege, Verhalten und Testzahl.
+- `HANDOFF.md`: aktuelle Übergabe; ursprüngliche Übergabe unten erhalten.
+
+## Reproduzierbare Prüfungen und Ergebnisse
+
+- `npm run typecheck`: erfolgreich.
+- `npm test`: 17/17 Prüfgruppen erfolgreich; umfasst Build und alle bisherigen 14 Gruppen.
+- `npm audit`: erfolgreich, 0 bekannte Schwachstellen.
+- `npm run check:lsp`: sieben TypeScript-Dateien, 0 Diagnosen, Exitcode 0; reguläre Shutdown-Meldung `context canceled`.
+- `git diff --check`: erfolgreich.
+- `cmp AGENTS.md CLAUDE.md`: bytegleich; beide unverändert.
+- Nach dem Test-Build `node dist/src/main.js`: gestartet, 225 Notizen eingelesen. `lsof -nP -iTCP:3210 -sTCP:LISTEN`: nur `127.0.0.1:3210`. Eigenen Server anschließend beendet.
+
+## Offen / unabhängige Prüfung
+
+Kein nicht umgesetzter Auftragspunkt. Kein zusätzlicher Befund außerhalb der sechs Punkte. Die Begrenzung auf lokale origin-form Request-Ziele im Adapter gehört zu Punkt 1.
+
+Der In-App-Browser war nicht verfügbar. Der anschließende Chrome-Aufruf von `http://localhost:3210` wurde durch die automatische Browser-Freigabe abgelehnt (keine Zugriffsfreigabe). Keine Umgehung. Daher keine eigene visuelle Bestätigung von Punkt 3 und 6 oder tatsächlicher Browsernavigation über localhost/NFC in dieser Runde. KI A prüft am neuen Commit insbesondere beide Einstiege, NFC-Adresse „00 Kontext/Über mich.md“, Frontmatter, Selbstanker/Rückverweise und Suche bei 1024 px. Die eigene Prüfung ersetzt keine unabhängige Abnahme; E1–E11 wurden nicht erneut vollständig am realen Bestand visuell abgenommen. Commit und unabhängige Prüfung stehen noch aus.
+
+---
+
+## Historische Übergabe vor der ersten Abnahme
+
 # Übergabe Lieferstand 1 · 21.10.2026
 
 **KI B:** Codex, Umsetzung und eigene Prüfung. **KI A:** Claude Code, Planung und ausstehende unabhängige Prüfung am Commit. Auftraggeber: Basti. **Kein Commit möglich:** Die Sandbox verweigert bereits `git init -b main` mit `.git: Operation not permitted`. Es wurde kein Repository und kein Remote eingerichtet. Der Stand liegt als unversionierte Dateien vor; KI A muss ihn vor der unabhängigen Abnahme lokal committen. Ein sauberer Git-Status ist hier deshalb nicht nachweisbar.

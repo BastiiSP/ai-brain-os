@@ -11,7 +11,7 @@ npm ci
 npm start
 ```
 
-`npm start` kompiliert TypeScript und startet die Anwendung unter **http://127.0.0.1:3210**. Die Bindung ist fest auf `127.0.0.1` beschränkt. Zum Beenden `Ctrl+C`. Kein Remote und keine globale Installation erforderlich. `localhost` ist wegen der strikten Host-Prüfung absichtlich kein alternativer Einstieg.
+`npm start` kompiliert TypeScript und startet die Anwendung unter **http://127.0.0.1:3210**. Die Bindung ist fest auf `127.0.0.1` beschränkt. Zum Beenden `Ctrl+C`. Kein Remote und keine globale Installation erforderlich. `http://localhost:3210` ist ebenfalls möglich. Host und Port müssen exakt einem dieser beiden Einstiege entsprechen; eine mitgesendete Herkunft muss zum jeweiligen Einstieg passen.
 
 ## Konfiguration
 
@@ -31,6 +31,8 @@ Ohne Konfigurationsdatei wird `../ai-brain-gedaechtnis` gelesen. Optional `confi
 - Links einen Ordner aufklappen oder „Ordner öffnen“ wählen; Notizen und Anhänge haben eigene URLs.
 - Suche mit Eingabetaste oder „Suchen“ auslösen. Durchsucht Titel, Pfad, Text und Frontmatter; Titeltreffer stehen zuerst, Ergebnisse enthalten Textausschnitte.
 - „Aktualisieren“ liest den gesamten Bestand neu. Die aktuelle Ansicht wird erneut geladen, gelöschte Notizen erhalten eine verständliche Meldung. Zeitpunkt und Dauer stehen oben. Es gibt keine automatische Live-Aktualisierung.
+- Direkte Notiz-, Ordner- und Anhangadressen funktionieren in NFC- und NFD-Schreibweise. Die Anwendung verwendet anschließend den indexierten Originalpfad; mehrdeutige normalisierte Dateipfade werden von der API abgewiesen.
+- Frontmatter-Listen erscheinen als kommagetrennte Werte. Selbstanker zeigen die Überschrift ohne führendes `#`; explizite Aliasse behalten Vorrang.
 - Rückverweise stehen unter einer Notiz. „Offene Verknüpfungen“ zeigt nicht aufgelöste und mehrdeutige Verweise. Mehrdeutige Ziele müssen ausgewählt werden; Vorschläge sind als „Möglicherweise gemeint“ markiert.
 - Zurück/Vor im Browser navigiert zwischen Ansichten. Überschriftenanker scrollen zum Ziel; fehlt die Überschrift, erscheint ein Hinweis. Blockanker öffnen die Notiz.
 - Externe Links sind markiert und öffnen separat. Externe Bilder werden als Link angezeigt; beim Lesen werden keine externen Bilder geladen.
@@ -39,7 +41,7 @@ Ohne Konfigurationsdatei wird `../ai-brain-gedaechtnis` gelesen. Optional `confi
 
 NFC-Normalisierung, Groß-/Kleinschreibung ignoriert, `\|` entspricht `|`. Alias nach `|` ist Anzeigetext, `#` trennt Anker. Codeblöcke und Inline-Code werden nicht als Links ausgewertet.
 
-Die erste passende Stufe entscheidet: Pfad ab Wurzel (optional `.md`), relativ zum Quellordner, eindeutiger Pfad-Suffix, eindeutiger Dateiname bei Zielen ohne `/`, danach Ordner (Wurzel oder relativ). Mehrere Treffer derselben Stufe führen zur Auswahl, nicht zum Weiterprobieren. Nicht aufgelöste alte Pfade können gleichnamige sichtbare Dateien als Vorschlag anbieten. Explizit versteckte/ausgeschlossene Ziele liefern auch keine Vorschläge. Markdown-Links verwenden dieselben Stufen; Prozentkodierung wird einmal dekodiert. Aufgelöste eindeutige Links erzeugen Rückverweise; mehrdeutige Links und Vorschläge nicht.
+Die erste passende Stufe entscheidet: Pfad ab Wurzel (optional `.md`), relativ zum Quellordner, eindeutiger Pfad-Suffix, eindeutiger Dateiname bei Zielen ohne `/`, danach Ordner (Wurzel oder relativ). Mehrere Treffer derselben Stufe führen zur Auswahl, nicht zum Weiterprobieren. Nicht aufgelöste alte Pfade können gleichnamige sichtbare Dateien als Vorschlag anbieten. Explizit versteckte/ausgeschlossene Ziele liefern auch keine Vorschläge. Markdown-Links verwenden dieselben Stufen; Prozentkodierung wird einmal dekodiert. Aufgelöste eindeutige Links aus anderen Notizen erzeugen Rückverweise; mehrdeutige Links und Vorschläge nicht.
 
 Notiz-Embeds erscheinen als Links, Bild-Embeds werden angezeigt. Überschriften-IDs basieren auf sichtbarem Text in Kleinschreibung/NFC mit Bindestrichen statt Leerzeichen; wiederholte Überschriften erhalten Nummern. Obsidian-spezifische Blockanker, Bases, Dataview und Notiz-Transklusion sind nicht implementiert. Callouts erscheinen als Zitat mit Typbezeichnung; Aufgabenlisten als nicht editierbare Kästchen.
 
@@ -52,7 +54,7 @@ npm run check:lsp
 npm audit
 ```
 
-Tests erzeugen und entfernen ihr eigenes Gedächtnis unter `.test-work/`. Sie lesen **nie** das reale Gedächtnis. Die 14 Prüfgruppen prüfen Dateiliste, Linkformen und Stufen, NFC, Metadaten, Suche, externe Änderungen, Unverändertheit, Traversal, Symlinks, Ausschlüsse, HTML, HTTP-Schutz und alle E9-Fehlerfälle. Server-Requests laufen direkt über den Fetch-Handler, ohne Port. Der TypeScript-7-LSP wird separat über stdio für alle TypeScript-Dateien abgefragt. Die Meldung `context canceled` beim regulären LSP-Shutdown stammt vom Language Server; maßgeblich sind Diagnosen und Exitcode.
+Tests erzeugen und entfernen ihr eigenes Gedächtnis unter `.test-work/`. Sie lesen **nie** das reale Gedächtnis. Die 17 Prüfgruppen prüfen Dateiliste, Linkformen und Stufen, NFC, Metadaten, Suche, externe Änderungen, Unverändertheit, Traversal, Symlinks, Ausschlüsse, HTML, HTTP-Schutz und alle E9-Fehlerfälle. Server-Requests laufen direkt über den Fetch-Handler, ohne Port. Der TypeScript-7-LSP wird separat über stdio für alle TypeScript-Dateien abgefragt. Die Meldung `context canceled` beim regulären LSP-Shutdown stammt vom Language Server; maßgeblich sind Diagnosen und Exitcode.
 
 Ein optionaler **rein lesender** Kurztest gegen den konfigurierten Bestand ist ausdrücklich getrennt:
 

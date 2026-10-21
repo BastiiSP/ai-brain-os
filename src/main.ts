@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { loadConfig } from './config.js';
 import { Vault } from './vault.js';
-import { createHandler } from './server.js';
+import { createHandler, localOrigin } from './server.js';
 
 try {
   const config = await loadConfig();
@@ -12,8 +12,9 @@ try {
     try {
       const headers = new Headers();
       for (const [key, value] of Object.entries(req.headers)) if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(',') : value);
-      if (req.headers.host !== `127.0.0.1:${config.port}`) { res.writeHead(403); res.end('Lokaler Zugriff erforderlich.'); return; }
-      const request = new Request(`http://127.0.0.1:${config.port}${req.url}`, { method: req.method, headers });
+      const origin = localOrigin(req.headers.host, config.port);
+      if (!origin || !req.url?.startsWith('/') || req.url.startsWith('//')) { res.writeHead(403); res.end('Lokaler Zugriff erforderlich.'); return; }
+      const request = new Request(`${origin}${req.url}`, { method: req.method, headers });
       const response = await handler(request);
       res.writeHead(response.status, Object.fromEntries(response.headers));
       res.end(Buffer.from(await response.arrayBuffer()));
