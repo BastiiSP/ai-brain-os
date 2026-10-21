@@ -1,6 +1,6 @@
 import type { Entry } from './vault.js';
-import { folderColor, hiddenBy, moveBeforePosition, noteCounts, ordered, palette, parentOf, rememberOrder } from './preferences.js';
-import type { Preferences, SettingsState, Tone } from './preferences.js';
+import { changePreferences, folderColor, hiddenBy, moveBeforePosition, noteCounts, ordered, palette, parentOf } from './preferences.js';
+import type { PreferenceChange, Preferences, SettingsState, Tone } from './preferences.js';
 
 const element = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string) => {
   const el = document.createElement(tag); if (text !== undefined) el.textContent = text; return el;
@@ -27,9 +27,9 @@ export class Navigation {
       mark.style.backgroundColor = folderColor(this.settings!.current, mark.dataset.colorPath!, mark.dataset.folder === 'true', dark);
     });
   }
-  private async change(mutator: (p: Preferences) => void, focus?: string) {
+  private async change(action: PreferenceChange, focus?: string) {
     if (this.busy || !this.settings?.writable) return;
-    const next = rememberOrder(this.settings.current, this.entries); mutator(next);
+    const next = changePreferences(this.settings.current, action);
     this.busy = true; this.message = 'Einstellungen werden gespeichert …'; this.render();
     try { this.settings = await this.save(next, this.settings.revision); this.message = 'Gespeichert.'; }
     catch (error) {
@@ -69,19 +69,16 @@ export class Navigation {
       const items = listFor(group); const from = items.indexOf(p), to = items.indexOf(target);
       if (from < 0 || to < 0) return;
       const moved = moveBeforePosition(items, p, target);
-      void this.change(next => {
-        if (group === '/pinned') next.pinned = moved;
-        else Object.defineProperty(next.order, group, { value: moved, writable: true, configurable: true, enumerable: true });
-      }, `${group}:${p}:drag`);
+      void this.change(group === '/pinned' ? { type: 'pins', paths: moved } : { type: 'order', parent: group, paths: moved }, `${group}:${p}:drag`);
     };
     const actions = (e: Entry, group: string): HTMLElement => {
       const actions = element('span'); actions.className = 'entry-actions';
-      const add = (text: string, name: string, action: (p: Preferences) => void) => {
+      const add = (text: string, name: string, action: PreferenceChange) => {
         const key = `${group}:${e.path}:${name}`;
         const b = button(text, () => { void this.change(action, key); }, key); b.setAttribute('aria-label', `${text}: ${e.path}`); actions.append(b); return b;
       };
-      if (group !== '/pinned') add(prefs.hidden.includes(e.path) ? 'Einblenden' : 'Ausblenden', 'hide', p => { p.hidden = p.hidden.includes(e.path) ? p.hidden.filter(x => x !== e.path) : [...p.hidden, e.path]; });
-      if (e.kind === 'note') add(prefs.pinned.includes(e.path) ? 'Lösen' : 'Anheften', 'pin', p => { p.pinned = p.pinned.includes(e.path) ? p.pinned.filter(x => x !== e.path) : [...p.pinned, e.path]; });
+      if (group !== '/pinned') add(prefs.hidden.includes(e.path) ? 'Einblenden' : 'Ausblenden', 'hide', { type: 'hidden', path: e.path });
+      if (e.kind === 'note') add(prefs.pinned.includes(e.path) ? 'Lösen' : 'Anheften', 'pin', { type: 'pin', path: e.path });
       const items = listFor(group); const index = items.indexOf(e.path);
       const handle = button('↕', () => {}, `${group}:${e.path}:drag`); handle.draggable = !fields.disabled; handle.className = 'drag-handle'; handle.setAttribute('aria-label', `Reihenfolge ändern: ${e.path}. Alt und Pfeiltaste oben oder unten.`);
       handle.ondragstart = ev => { this.drag = { path: e.path, group }; if (ev.dataTransfer) { ev.dataTransfer.setData('text/plain', e.path); ev.dataTransfer.effectAllowed = 'move'; } };
@@ -95,7 +92,7 @@ export class Navigation {
         const label = element('label', 'Farbe'); const select = element('select'); select.setAttribute('aria-label', `Farbe für ${e.path}`); select.dataset.focus = `${group}:${e.path}:color`;
         for (const [value, tone] of Object.entries(palette)) { const option = element('option', tone.label); option.value = value; select.append(option); }
         select.value = Object.hasOwn(prefs.colors, e.path) ? prefs.colors[e.path]! : 'teal';
-        select.onchange = () => { const value = select.value as Tone; void this.change(p => { Object.defineProperty(p.colors, e.path, { value, writable: true, configurable: true, enumerable: true }); }, select.dataset.focus); };
+        select.onchange = () => { void this.change({ type: 'color', path: e.path, tone: select.value as Tone }, select.dataset.focus); };
         label.append(select); actions.append(label);
       }
       return actions;
@@ -145,7 +142,7 @@ export class Navigation {
     const stale = prefs.hidden.filter(p => !byPath.has(p));
     if (this.reveal && stale.length) {
       fields.append(element('h2', 'Ausgeblendet, nicht gefunden'));
-      for (const p of stale) { const b = button(`Ausblendung entfernen: ${p}`, () => { void this.change(next => { next.hidden = next.hidden.filter(x => x !== p); }); }); fields.append(b); }
+      for (const p of stale) { const b = button(`Ausblendung entfernen: ${p}`, () => { void this.change({ type: 'unhide', path: p }); }); fields.append(b); }
     }
     this.paintColors();
   }

@@ -9,8 +9,8 @@ import { pathToFileURL } from 'node:url';
 import { Readable } from 'node:stream';
 import type { IncomingMessage } from 'node:http';
 import { SettingsStore, SettingsError, SETTINGS_RELATIVE, MAX_SETTINGS_BYTES, MAX_REQUEST_BYTES } from '../src/settings.js';
-import { emptyPreferences, folderColor, hiddenBy, moveBeforePosition, noteCounts, ordered, rememberOrder, validPreferences, visibleGraph } from '../src/preferences.js';
-import type { Preferences } from '../src/preferences.js';
+import { changePreferences, emptyPreferences, folderColor, hiddenBy, moveBeforePosition, noteCounts, ordered, validPreferences, visibleGraph } from '../src/preferences.js';
+import type { PreferenceChange, Preferences, SettingsState } from '../src/preferences.js';
 import { Vault } from '../src/vault.js';
 import { createHandler } from '../src/server.js';
 import { incomingBody } from '../src/http.js';
@@ -205,11 +205,12 @@ test('O3: ausgeblendete Ordner und Wurzelnotizen fehlen im Raum; Suche und Links
 
 test('O2/O4/O5/O6: Abstufung, vollständige Notizanzahl, neue Ordner am Ende und stabile Pin-Referenzen', () => use(async ({ vault, store, put, root }) => {
   const prefs = emptyPreferences(); prefs.colors.A = 'pink'; prefs.pinned = ['A/Notiz.md']; prefs.order[''] = ['B', 'A'];
-  const remembered = rememberOrder(prefs, vault.snapshot.entries); const saved = store.save(remembered, 'missing');
+  prefs.order[''] = moveBeforePosition(ordered(vault.snapshot.entries.filter(e => !e.path.includes('/'))).map(e => e.path), 'B', 'A');
+  const saved = store.save(prefs, 'missing');
   put('00 Neu/Neu.md', 'Neu'); fs.renameSync(path.join(root, 'A/Notiz.md'), path.join(root, 'A/Umbenannt.md')); await vault.refresh();
   const reloaded = store.load(); assert.deepEqual(reloaded.current.pinned, ['A/Notiz.md']); assert(!vault.snapshot.notes.has(reloaded.current.pinned[0]!));
   const roots = ordered(vault.snapshot.entries.filter(e => !e.path.includes('/')), reloaded.current.order['']);
-  assert.equal(roots.at(-1)!.path, '00 Neu'); assert.equal(roots[0]!.path, 'B'); assert.equal(roots[1]!.path, 'A');
+  assert.equal(roots.at(-1)!.path, '00 Neu'); assert(roots.findIndex(e => e.path === 'B') < roots.findIndex(e => e.path === 'A'));
   assert.equal(noteCounts(vault.snapshot.entries).get('A'), 2); assert.equal(noteCounts(vault.snapshot.entries).get('A/Unter'), 1);
   assert.equal(vault.snapshot.entries.find(e => e.path === 'Ordner.md')?.title, 'Ordner.md');
   for (const dark of [true, false]) {
@@ -218,9 +219,6 @@ test('O2/O4/O5/O6: Abstufung, vollständige Notizanzahl, neue Ordner am Ende und
     const saturation = (hex: string) => { const rgb = hex.slice(1).match(/../g)!.map(x => parseInt(x, 16)); return Math.max(...rgb) - Math.min(...rgb); };
     assert(saturation(main) > saturation(sub)); assert(saturation(sub) > saturation(folderColor(prefs, 'A/Unter/Tief', true, dark)));
   }
-  const transient = rememberOrder(emptyPreferences(), [{ path: 'B', title: 'B', kind: 'folder' }]);
-  const discovered = rememberOrder(transient, [{ path: 'A', title: 'A', kind: 'folder' }, { path: 'B', title: 'B', kind: 'folder' }]);
-  assert.deepEqual(discovered.order[''], ['B', 'A']);
   assert.equal(saved.writable, true);
 }));
 
@@ -279,3 +277,47 @@ test('O8/O9: abgebrochener Testprozess hinterlässt nur eine bereinigbare Temp-D
   assert.equal(fs.readdirSync(path.join(base, '.settings-work')).length, 1);
   new SettingsStore(root, base).cleanup(); assert.deepEqual(fs.readdirSync(path.join(base, '.settings-work')), []); assert.deepEqual(manifest(root), before);
 }));
+
+
+test('F1: Ausblenden, Farbe und Anheften speichern ohne Umsortierung keinerlei Reihenfolge', () => use(async ({ handler, target, vault }) => {
+  // Large invented index: unrelated paths must never inflate a settings write.
+  for (let i = 0; i < 6000; i++) vault.snapshot.entries.push({ path: `Unberuehrt/Unterordner-${i}/Erfundene-Notiz-${i}.md`, title: 'Erfundene Notiz', kind: 'note' });
+  const actions: PreferenceChange[] = [{ type: 'hidden', path: 'AGENTS.md' }, { type: 'color', path: 'A', tone: 'pink' }, { type: 'pin', path: 'A/Notiz.md' }, { type: 'pins', paths: ['A/Notiz.md'] }];
+  for (const action of actions) {
+    const state = await (await handler(new Request(origin + '/api/state'))).json() as { settings: SettingsState };
+    const current = changePreferences(state.settings.current, action);
+    const response = await handler(putRequest({ current, revision: state.settings.revision })); assert.equal(response.status, 200);
+    const bytes = fs.readFileSync(target, 'utf8'); const stored = JSON.parse(bytes);
+    assert.deepEqual(stored.current.order, {}); assert.deepEqual(stored.previous?.order ?? {}, {});
+    assert(!bytes.includes('Unberuehrt')); assert(Buffer.byteLength(bytes) < 1024);
+  }
+  const stored = JSON.parse(fs.readFileSync(target, 'utf8'));
+  assert.deepEqual(stored.current, { colors: { A: 'pink' }, hidden: ['AGENTS.md'], order: {}, pinned: ['A/Notiz.md'] });
+}));
+
+test('F1: Umsortierung speichert nur direkte Geschwister im betroffenen Ordner; neue Einträge erscheinen ohne Schreiben', () => use(async ({ vault, store, handler, target, put }) => {
+  const siblings = ordered(vault.snapshot.entries.filter(e => e.path.startsWith('A/') && !e.path.slice(2).includes('/'))).map(e => e.path);
+  const sorted = changePreferences(emptyPreferences(), { type: 'order', parent: 'A', paths: moveBeforePosition(siblings, 'A/Unter', 'A/Bild.txt') });
+  const saved = store.save(sorted, 'missing');
+  assert.deepEqual(saved.current.order, { A: ['A/Unter', 'A/Bild.txt', 'A/Notiz.md'] });
+  assert(!JSON.stringify(saved.current).includes('A/Unter/Kind.md'));
+  const before = fs.readFileSync(target); const mtime = fs.statSync(target).mtimeMs;
+  put('A/00 Neu.md', 'Neue erfundene Notiz'); put('A/01 Neu.md', 'Zweite neue Notiz');
+  await handler(new Request(origin + '/api/refresh', { method: 'POST', headers: { 'X-Brain-Request': '1' } }));
+  const loaded = await (await handler(new Request(origin + '/api/state'))).json() as { entries: { path: string }[]; settings: SettingsState };
+  const shown = ordered(loaded.entries.filter(e => e.path.startsWith('A/') && !e.path.slice(2).includes('/')), loaded.settings.current.order.A);
+  assert.deepEqual(shown.map(e => e.path), ['A/Unter', 'A/Bild.txt', 'A/Notiz.md', 'A/00 Neu.md', 'A/01 Neu.md']);
+  assert.deepEqual(fs.readFileSync(target), before); assert.equal(fs.statSync(target).mtimeMs, mtime);
+  const hidden = changePreferences(loaded.settings.current, { type: 'hidden', path: 'AGENTS.md' });
+  store.save(hidden, loaded.settings.revision);
+  assert.deepEqual(store.load().current.order, { A: ['A/Unter', 'A/Bild.txt', 'A/Notiz.md'] });
+}));
+
+test('F1: Unabhängige Änderungen erhalten ausdrücklich sortierte Ordner und erzeugen keine weiteren', () => {
+  const original = emptyPreferences(); original.order.A = ['A/Z.md', 'A/A.md'];
+  const next = changePreferences(original, { type: 'order', parent: 'B', paths: ['B/Z.md', 'B/A.md'] });
+  const pinned = changePreferences(next, { type: 'pin', path: 'B/A.md' });
+  const unhidden = changePreferences(pinned, { type: 'unhide', path: 'AGENTS.md' });
+  assert.deepEqual(unhidden.order, { A: ['A/Z.md', 'A/A.md'], B: ['B/Z.md', 'B/A.md'] });
+  assert.deepEqual(original, { ...emptyPreferences(), order: { A: ['A/Z.md', 'A/A.md'] } });
+});

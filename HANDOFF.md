@@ -1,3 +1,56 @@
+# Übergabe Lieferstand 5 · Korrekturrunde 1 · 21.10.2026
+
+**KI B:** Codex, Umsetzung und eigene Prüfung. **KI A:** Claude Code, Planung und unabhängige Prüfung. Auftraggeber: Basti.
+
+**Stand:** Branch `main`, Basis `68bda084e6345b78148b9b715863b374f47b7d39`, dazu ausschließlich der uncommittierte Diff der sechs unten genannten Dateien. Kein Commit und kein Push.
+
+## F1: unnötige Kopie aller Pfade in den Einstellungen
+
+Der Befund ist bestätigt: `rememberOrder` wurde sowohl beim Laden als auch vor jeder beliebigen Einstellungsänderung aufgerufen. Dadurch gelangte die gesamte indexierte Struktur in `order`, selbst bei einer einzelnen Ausblendung. Beide Aufrufe und die Funktion wurden entfernt. Es gab keinen weiteren wesentlichen Planeinwand.
+
+Die Navigation verwendet jetzt ausdrückliche Einstellungsaktionen (`changePreferences`). Ausblenden, Farbe, Anheften, Lösen und Pin-Sortierung ändern ausschließlich ihr jeweiliges Feld. Nur eine tatsächliche Umsortierung im Baum setzt einen Eintrag in `order`: die direkten Geschwister des betroffenen Elternordners, ohne dessen Unterordnerinhalte und ohne andere Ordner. Vorhandene Einstellungen werden dabei nicht mutiert.
+
+Die Geschwisterliste dieses einen Ordners ist nötig, um alle damals vorhandenen Einträge vor später hinzukommenden zu halten. Neue Einträge werden beim Anzeigen alphabetisch nach der gespeicherten Liste ergänzt. Dafür ist weder eine Speicherung noch eine Ergänzung der Einstellungsdatei nötig. Eine spätere unabhängige Einstellung nimmt diese neuen Pfade ebenfalls nicht in `order` auf. Ohne Umsortierung bleibt `order` leer und die Anzeige alphabetisch.
+
+Der Schreibzugriff, sein Schema v1, die Sicherung und die Revisions-/Herkunftsprüfungen sind unverändert. Bereits vorhandene v1-Reihenfolgeeinträge bleiben erhalten: Aus alten Dateien lässt sich nicht zuverlässig ableiten, welche Liste Basti tatsächlich gewählt hat. Es gibt deshalb keine automatische Löschung/Migration solcher Angaben. Laut KI A wurde die bisherige Testdatei im realen Gedächtnis bereits entfernt. Die optional vorgeschlagenen unterschiedlichen Standardfarben sind nicht Teil dieser Korrektur; der Standard bleibt Türkis.
+
+## Geänderte Dateien (vollständig)
+
+- `src/client.ts`: Laden übernimmt die geprüften Einstellungen unverändert; keine Anreicherung aus dem Index.
+- `src/navigation.ts`: Bedienaktionen verwenden die gezielte Einstellungsänderung; nur Baum-Umsortierung schreibt `order`.
+- `src/preferences.ts`: automatische Sammlung aller Pfade entfernt; reine Funktion für ausdrückliche Einstellungsaktionen ergänzt.
+- `tests/settings.test.ts`: bisherige O5-Prüfung angepasst; drei F1-Regressionstests ergänzt.
+- `README.md`: sparsame Persistenz, Standardreihenfolge und Verhalten neuer Einträge dokumentiert.
+- `HANDOFF.md`: diese Übergabe; vorherige Übergabe unten als Historie erhalten.
+
+Keine neuen Abhängigkeiten. `package.json`, Lockfile, AGENTS.md und CLAUDE.md unverändert. Keine Änderungen am realen Gedächtnis oder laufenden Dienst, kein Port geöffnet, kein `launchctl` und kein Aufruf von `scripts/access.mjs`. Sämtliche Test-Dateien liegen im Anwendungsordner unter `.test-work/`; der zusätzliche große Index ist rein erfunden und nur im Testspeicher vorhanden.
+
+## Eigene Prüfungen am übergebenen Stand
+
+| Befehl | Ergebnis |
+| --- | --- |
+| `npm run typecheck` | erfolgreich, Exitcode 0 |
+| `npm test` | **53/53 Tests bestanden**, keine übersprungenen Tests; Build enthalten |
+| `npm run check:lsp` | **17 TypeScript-Dateien, 0 Diagnosen**, Exitcode 0; bekannte reguläre Shutdown-Meldung `context canceled` |
+| `npm audit` | **0 Schwachstellen**, Exitcode 0 |
+| `git diff --check` | erfolgreich |
+
+Die drei neuen Regressionstests belegen:
+
+1. Laden über den State-Endpunkt, explizite Ausblendung/Farbwahl/Anheften/Pin-Sortierung mit der von der Navigation verwendeten Änderungsfunktion und Speichern über die geschützte API: `current.order` und `previous.order` bleiben leer. Bei zusätzlich 6.000 erfundenen Indexeinträgen bleibt die komplette Einstellungsdatei einschließlich Sicherung unter 1 KiB und enthält keinen der unbeteiligten Pfade.
+2. Umsortierung im Ordner `A` speichert ausschließlich dessen drei direkte Einträge; weder andere Ordner noch die Notiz unter `A/Unter` erscheinen in der Reihenfolgeliste. Zwei später angelegte Notizen stehen nach Aktualisieren alphabetisch am Ende. Inhalt und Änderungszeit der Einstellungsdatei bleiben unverändert. Eine anschließende Ausblendung ergänzt diese neuen Pfade ebenfalls nicht in `order`.
+3. Eine ausdrückliche Umsortierung eines weiteren Ordners erhält die zuvor gewählte Reihenfolge; unabhängige Pin-/Ausblendungsaktionen erzeugen keine zusätzlichen Reihenfolgeeinträge und verändern das übergebene Ausgangsobjekt nicht.
+
+## Offen / unabhängige Nachprüfung
+
+F1 ist aus Sicht von KI B behoben. Die Tests prüfen Änderungslogik, API und Dateisystem; echte Browserereignisse wurden in dieser Runde nicht erprobt. KI A prüft am neuen Commit insbesondere einmaliges Ausblenden ohne Umsortierung (`order: {}`), Sortierung genau eines Ordners per Maus/Tastatur und danach das Erscheinen einer neuen Testnotiz ohne Schreibzugriff auf die Einstellungen.
+
+Die von KI A für `68bda08` gemeldeten Prüfungen (frischer Klon, 50 Tests, Audit, Mutationsproben und begrenzter realer Schreibzugriff) gehören zum vorherigen Stand und wurden hier nicht als eigene Prüfungen wiederholt. Allgemeine noch offene Sicht-/Leistungsprüfungen und O10 bleiben bei KI A beziehungsweise Basti. Die dokumentierte Grenze zwischen finalem Revisionsvergleich und Betriebssystem-Dateiaustausch bleibt unverändert.
+
+---
+
+# Historie: erste Übergabe von Lieferstand 5
+
 # Übergabe Lieferstand 5 · 21.10.2026
 
 **KI B:** Codex, Umsetzung und eigene Prüfung. **KI A:** Claude Code, Planung und unabhängige Prüfung. **Auftraggeber:** Basti.

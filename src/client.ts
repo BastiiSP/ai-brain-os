@@ -1,5 +1,5 @@
 import { Navigation } from './navigation.js';
-import { hiddenBy, ordered, rememberOrder, visibleGraph } from './preferences.js';
+import { hiddenBy, ordered, visibleGraph } from './preferences.js';
 import type { SettingsState } from './preferences.js';
 import type { Graph } from './graph.js';
 import type { createRoom } from './room.js';
@@ -74,11 +74,7 @@ const navigation = new Navigation(el('tree'), async (current, revision) => {
   await load(); room?.dispose(); room = undefined; await route();
 });
 async function load() {
-  const next = await api<State>('/api/state');
-  // Keep discovery order within this page even before the first explicit save.
-  // A changed file revision replaces this transient state completely.
-  if (next.settings.writable) next.settings.current = rememberOrder(state && state.settings.revision === next.settings.revision ? state.settings.current : next.settings.current, next.entries);
-  state = next;
+  state = await api<State>('/api/state');
   navigation.update(state.entries, state.settings);
   status.textContent = `${state.entries.filter(e => e.kind === 'note').length} Notizen · Zuletzt eingelesen: ${new Date(state.updated).toLocaleString('de-DE')} · ${Math.round(state.durationMs)} ms${state.warnings.length ? ` · ${state.warnings.length} Hinweise (Startseite)` : ''}`;
   if (state.settings.warning) status.textContent += ' · ' + state.settings.warning;

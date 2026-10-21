@@ -35,13 +35,24 @@ export function moveBeforePosition(items: string[], source: string, target: stri
   if (from < 0 || to < 0 || from === to) return next;
   next.splice(from, 1); next.splice(to, 0, source); return next;
 }
-// Retain missing references; newly discovered entries follow previously saved ones.
-export function rememberOrder(prefs: Preferences, entries: Entry[]): Preferences {
+export type PreferenceChange =
+  | { type: 'hidden' | 'pin'; path: string }
+  | { type: 'unhide'; path: string }
+  | { type: 'color'; path: string; tone: Tone }
+  | { type: 'order'; parent: string; paths: string[] }
+  | { type: 'pins'; paths: string[] };
+
+// Persist only the explicit action. Index/discovery data never enters this step.
+export function changePreferences(prefs: Preferences, change: PreferenceChange): Preferences {
   const next = structuredClone(prefs);
-  for (const e of entries) {
-    const p = parentOf(e.path);
-    if (!Object.hasOwn(next.order, p)) Object.defineProperty(next.order, p, { value: [], enumerable: true, writable: true, configurable: true });
-    if (!next.order[p]!.includes(e.path)) next.order[p]!.push(e.path);
+  const toggle = (items: string[], p: string) => items.includes(p) ? items.filter(item => item !== p) : [...items, p];
+  switch (change.type) {
+    case 'hidden': next.hidden = toggle(next.hidden, change.path); break;
+    case 'unhide': next.hidden = next.hidden.filter(p => p !== change.path); break;
+    case 'pin': next.pinned = toggle(next.pinned, change.path); break;
+    case 'pins': next.pinned = [...change.paths]; break;
+    case 'color': Object.defineProperty(next.colors, change.path, { value: change.tone, enumerable: true, writable: true, configurable: true }); break;
+    case 'order': Object.defineProperty(next.order, change.parent, { value: [...change.paths], enumerable: true, writable: true, configurable: true }); break;
   }
   return next;
 }
