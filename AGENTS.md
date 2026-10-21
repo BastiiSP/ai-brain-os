@@ -5,7 +5,7 @@ Die gemeinsamen Regeln einschließlich KI-Rollen stehen im übergeordneten `../A
 
 ## Entwicklungsstand und Ziel
 
-- Lieferstand 1 ist umgesetzt und am 21.10.2026 von KI A unabhängig abgenommen (Commit `5df69a4`): lesende lokale Web-Anwendung für das Gedächtnis. Start mit `npm start`, Bedienung und Prüfbefehle in `README.md`. Weitere Lieferstände befinden sich in Anforderungsklärung mit Basti.
+- Lieferstand 1 ist umgesetzt und am 21.10.2026 von KI A unabhängig abgenommen (Commit `b9a96a3`, vor Umschreiben der Commit-Adresse `5df69a4`): lesende lokale Web-Anwendung für das Gedächtnis. Start mit `npm start`, Bedienung und Prüfbefehle in `README.md`. Weitere Lieferstände befinden sich in Anforderungsklärung mit Basti.
 - AI Brain OS soll die anpassbare interaktive Ansicht und Bedienoberfläche des vorhandenen Gedächtnisses werden. Bestätigt sind Suche, Verknüpfungen relevanter Dateien, visuelle Aufbereitung, persönliches Gedächtnis, Denkpartner und Arbeitszentrale.
 - Dokumente und Links sollen einfach einbringbar sein; relevantes Wissen später automatisch extrahieren, einordnen und mit vorhandenen Inhalten verknüpfen. Ein gezielter Wissenschat ist vorgesehen.
 - Für Lieferstand 1 von KI A gewählt: lokale Web-Anwendung mit Node.js-LTS und TypeScript, Server nur an `127.0.0.1`, Index nur im Arbeitsspeicher; Begründung in der Projektnotiz. Oberfläche, Verarbeitungsablauf und Architektur späterer Lieferstände sowie die Anbindung von ChatGPT, Codex, Claude und Claude Code sind offen. Keine eingerichtete Verbindung unterstellen.
@@ -15,7 +15,8 @@ Die gemeinsamen Regeln einschließlich KI-Rollen stehen im übergeordneten `../A
 
 - Anwendung und spätere Build-/Testdateien bleiben hier. Das bestehende Gedächtnis liegt unter `/Users/sebastianprehmus/Workspace/ai-brain/ai-brain-gedaechtnis`.
 - Wissen, Anhänge, Projektnotiz und Daily Notes verbleiben im Gedächtnis; dessen Anweisungen vor dortigen Änderungen lesen. Keine zweite Wissensablage im Anwendungscode anlegen.
-- Eigenes lokales Git-Repository nur für diese Anwendung (Branch `main`, seit 21.10.2026), ohne Remote; noch kein GitHub-Repository angelegt. Das Gedächtnis-Repository und seine Historie bleiben eigenständig.
+- Eigenes Git-Repository nur für diese Anwendung, Branch `main`, Remote **öffentlich** `https://github.com/BastiiSP/ai-brain-os` (seit 21.10.2026). Das Gedächtnis-Repository und seine Historie bleiben eigenständig und privat.
+- Öffentliches Repository: Testdaten erfunden; keine Inhalte aus dem Gedächtnis, keine personen- oder kundenbezogenen Daten, keine Zugangsdaten oder lokalen Konfigurationen (`config.local.json` bleibt ignoriert). KI A prüft den Diff darauf vor jedem Push. Commits verwenden die repo-lokal eingestellte GitHub-noreply-Adresse, nicht Bastis Arbeitsadresse. Gepusht wird erst nach abgeschlossener Prüfung durch KI A.
 
 ## Entwicklungsaufträge, Prüfung und Übergabe
 
@@ -24,7 +25,7 @@ Bei Prompt-Anfragen gilt das gemeinsame Verfahren im Hauptordner mit dem lokalen
 - In jedem Entwicklungsauftrag die im Hauptordner geregelten Rollen KI A (Planung und unabhängige Prüfung) und KI B (Umsetzung und eigene Prüfung) erkennbar benennen. Empfohlen: Claude Code und Codex. Bisher startet Claude Code Codex nicht interaktiv per `codex exec`; eine automatische Verbindung beider Systeme ist nicht eingerichtet.
 - Codex-spezifisch: Die Codex-Sandbox kann nicht in `.git` schreiben. KI A committet den übergebenen Stand dann unverändert, nennt Codex als Umsetzer in der Commit-Nachricht und prüft genau diesen Commit.
 - Vor Umsetzung Plan auf Widersprüche und Machbarkeit prüfen und vorhandenes projektbezogenes Tooling berücksichtigen. Keine gleichzeitigen Änderungen derselben Dateien durch verschiedene Instanzen.
-- Übergabe nennt Ziel, Kontext, Grenzen, Erfolgskriterien, tatsächliche Änderungen, betroffene Dateien, reproduzierbare Prüfschritte und Ergebnisse, verbleibende Befunde sowie den konkreten Versionsstand. Sobald Git eingerichtet ist: Commit-ID und gegebenenfalls uncommittierten Diff angeben.
+- Übergabe nennt Ziel, Kontext, Grenzen, Erfolgskriterien, tatsächliche Änderungen, betroffene Dateien, reproduzierbare Prüfschritte und Ergebnisse, verbleibende Befunde sowie den konkreten Versionsstand mit Commit-ID und gegebenenfalls uncommittiertem Diff.
 - KI A prüft Code, Prüfungen und sichtbare Oberfläche selbst am übergebenen Stand. Wesentliche Befunde behebt KI B; KI A prüft erneut. Nicht ausführbare Prüfungen offen lassen; die eigene Prüfung ersetzt keine unabhängige Abnahme.
 
 ## Lieferstände
