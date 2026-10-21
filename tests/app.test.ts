@@ -68,6 +68,25 @@ test('A3/G2: lokale Schriftdateien und restriktive CSP', () => use(async ({ hand
   assert(!(await page.text()).includes('https://'));
 }));
 
+test('F-1/F-3/F-4: lokales Chip-Hirn-Favicon mit unverändertem Hostschutz und CSP', () => use(async ({ handler }) => {
+  const source = await readFile(path.resolve('assets/icon-chip-hirn.svg'), 'utf8');
+  for (const host of ['127.0.0.1:3210', 'localhost:3210']) {
+    const local = `http://${host}`;
+    const request = (route: string, headers: Record<string, string> = {}) => handler(new Request(local + route, { headers: { Host: host, ...headers } }));
+    const page = await request('/');
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg">/);
+    const favicon = await request('/favicon.svg', { Origin: local });
+    assert.equal(favicon.status, 200);
+    assert.equal(favicon.headers.get('content-type'), 'image/svg+xml');
+    assert.equal(favicon.headers.get('content-security-policy'), page.headers.get('content-security-policy'));
+    assert.equal(favicon.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(await favicon.text(), source);
+    assert.equal((await request('/favicon.svg', { Host: 'evil.test:3210' })).status, 403);
+    assert.equal((await request('/favicon.svg', { Origin: 'https://evil.test' })).status, 403);
+  }
+}));
+
 test('E2: Navigation entspricht unabhängig festgelegter sichtbarer Dateiliste', () => use(async ({ vault, files }) => {
   const expected = Object.keys(files).filter(p => !p.split('/').some(s => s.startsWith('.')) && !p.startsWith('Privat/') && !defaultExcludes.includes(p)).sort();
   assert.deepEqual(vault.snapshot.entries.filter(e => e.kind !== 'folder').map(e => e.path).sort(), expected);

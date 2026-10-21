@@ -36,6 +36,7 @@ export async function settingsBody(request: Request): Promise<{ current: unknown
 export function createHandler(vault: Vault, base = process.cwd(), settings = new SettingsStore(vault.config.root, base)) {
   const assets: Record<string, [string, string]> = {
     '/': ['public/index.html', 'text/html; charset=utf-8'],
+    '/favicon.svg': ['assets/icon-chip-hirn.svg', 'image/svg+xml'],
     '/style.css': ['public/style.css', 'text/css; charset=utf-8'],
     '/room.js': ['dist/src/room.js', 'text/javascript; charset=utf-8'],
     '/room-data.js': ['dist/src/room-data.js', 'text/javascript; charset=utf-8'],
