@@ -15,6 +15,7 @@ export function createHandler(vault: Vault, base = process.cwd()) {
     '/': ['public/index.html', 'text/html; charset=utf-8'],
     '/style.css': ['public/style.css', 'text/css; charset=utf-8'],
     '/room.js': ['dist/src/room.js', 'text/javascript; charset=utf-8'],
+    '/room-data.js': ['dist/src/room-data.js', 'text/javascript; charset=utf-8'],
     '/room-layout.js': ['dist/src/room-layout.js', 'text/javascript; charset=utf-8'],
     '/three.module.js': ['node_modules/three/build/three.module.js', 'text/javascript; charset=utf-8'],
     '/three.core.js': ['node_modules/three/build/three.core.js', 'text/javascript; charset=utf-8'],

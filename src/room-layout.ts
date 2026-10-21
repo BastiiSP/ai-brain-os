@@ -5,7 +5,7 @@ export interface Layout { positions: Point[]; sizes: number[]; boards: Board[]; 
 export function layoutGraph(graph: Graph): Layout {
   const degree = graph.nodes.map(() => 0);
   for (const [a, b] of graph.edges) { degree[a]!++; degree[b]!++; }
-  const sizes = degree.map(d => 2 + 2 * d / (d + 4));
+  const sizes = degree.map(d => 3.5 + 2.5 * d / (d + 4));
   const groups = graph.folders.map(f => graph.nodes.flatMap((n, i) => n.folder === f ? [i] : []));
   const maxSide = Math.max(1, ...groups.map(g => Math.ceil(Math.sqrt(g.length))));
   const cell = maxSide * 10 + 16;
@@ -25,7 +25,7 @@ export function layoutGraph(graph: Graph): Layout {
   const endpoint = (i: number): Point => {
     const p = positions[i]!;
     const offset = ((++port[i]!) / (degree[i]! + 1) - 0.5) * sizes[i]! * 0.8;
-    return [p[0] + offset, p[1] + 0.5, p[2]];
+    return [p[0] + offset, p[1] + 1.25, p[2]];
   };
   const routes = graph.edges.map(([a, b], k) => {
     const A = endpoint(a), B = endpoint(b);

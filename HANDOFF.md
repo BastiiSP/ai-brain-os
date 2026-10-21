@@ -227,3 +227,67 @@ KI A prüft insbesondere:
 - Keine Änderungen an AGENTS.md, CLAUDE.md, Konfiguration oder Gedächtnis. Keine Lockerung der CSP.
 - Kleine konkretisierte Gestaltungsentscheidungen: zusätzlicher Wurzel-Sockel; eigene Bahnanschlüsse und Höhen statt des überlappenden Routings der Skizze; gemeinsames Schweben von Chips und Bahnen hält Anschlüsse zusammen; keine Vorschläge/Netzwerk-Umschaltung aus der Skizze übernommen, da außerhalb Lieferstand 4. Datumsfallback und Messgrenzen stehen in README.
 - Kamera und Raumzustand gelten nur für dieselbe Browserseite. Es gibt keine dauerhafte Kameraspeicherung. Der Index bleibt die einzige Datenquelle; Testdaten und Prüfergebnisse enthalten kein reales Wissen.
+
+---
+
+## Claudian-Update – 21.10.2026 · Lieferstand 4, Korrekturrunde 1
+
+### Implementiert
+
+KI B: Codex. KI A: Claude Code, unabhängige Nachprüfung ausstehend. Basis ist der saubere Commit `9252902654d79ccb36fc0fce5643a2c0542b17f2`.
+
+- **F1:** Direkte Referenzen auf die 2.000 Auswahloptionen statt wiederholter Zugriffe über die lebende `select.options`-Sammlung. Optionen werden in einem Fragment eingefügt, `disabled` nur bei tatsächlicher Änderung gesetzt. Dies beseitigt einen plausiblen browserabhängigen Aufwand im Aufbaupfad; die konkrete Ursache der von KI A gemessenen 17.788 ms ist ohne Browserprofil nicht abschließend bewiesen. Farben für die fünf Verlaufspunkte werden pro Aktualisierung statt pro Vertex erzeugt. Die Canvas-Texturen und deren erneute Erzeugung nach Font-Laden entfallen. Positionspuffer und Nachbarschaftslisten entstehen in einem getrennt messbaren Modul.
+- **F2:** Alternative zur unpraktikablen Darstellung aller Bahnen mit sichtbarem Mindestabstand: Jede Verbindung lässt sich einzeln verfolgen. Genau eine Bahn wird in Bildschirmkoordinaten als vollständig deckende 3-px-Spur mit 9-px-Hintergrundkontur über dem Kontextnetz gezeichnet. Alle anderen Bahnen bleiben deutlich gedimmt; die übrigen zur fokussierten Notiz gehörenden Bahnen bleiben stärker als der restliche Kontext. Vorige/Nächste sowie „Bahn verfolgen“ in der Karte erschließen alle sichtbaren Nachbarn. Beide Endpunkte werden beschriftet. Die ursprünglichen, formal getrennten Bahnabschnitte bleiben erhalten. Für die Kontextbahnen wird **kein sichtbarer Mindestabstand** behauptet.
+- **F2 Beschriftung/Körper:** Sockelnamen, fünf meistverknüpfte Notizen und fokussierte Endpunkte erhalten 14 CSS-Pixel große Bildschirmbeschriftungen mit Hintergrund und Zuordnungslinie. Überlappungen werden beim Platzieren verschoben. Chipkörper sind nun 2,5 Einheiten hoch und 3,5–6 Einheiten breit, abhängig vom Knotengrad; der Abstand bleibt mindestens 4 Einheiten. Beleuchtung reduziert, damit die Ordnerfarbe nicht so stark aufgehellt wird.
+- **F3:** 3D nutzt die volle Anwendungsbreite bei 72 vh Bühnenhöhe; die Navigation wird in diesem Modus ausgeblendet und bleibt in Fakten erreichbar. Die Notizkarte steht außerhalb der Bühne darunter und verdeckt sie nicht.
+- Optionaler Hinweis umgesetzt: Testserver entfernt bei Ctrl+C/SIGTERM nach dem Start und bei Startfehlern ausschließlich sein eigenes erzeugtes Test-Gedächtnis. SIGKILL kann weiterhin Reste hinterlassen.
+
+Geänderte Dateien (vollständig):
+
+- `README.md`: neue Darstellung, Messung, Aufräumen und CPU-Profil erläutert; überholte Angaben zu Chipgröße und Canvas-Texturen korrigiert.
+- `HANDOFF.md`: diese Übergabe.
+- `public/style.css`: große Bühne, Karte außerhalb, Bildschirmoverlay.
+- `src/client.ts`: Modusklasse für die große Bühne.
+- `src/room-layout.ts`: größere Chipkörper und passende Anschlusshöhe.
+- `src/room.ts`: DOM-Optimierung, Attribute, Einzelverfolgung, Beschriftung, Instrumentierung.
+- `src/room-data.ts` (neu): messbarer Positionspuffer, Nachbarschaften, Hubs, Auswahl einer isolierten Bahn.
+- `src/server.ts`: feste lokale Route für das neue Modul.
+- `scripts/room-benchmark.mjs`: gezieltes Aufräumen.
+- `scripts/room-profile.mjs` (neu): fünf CPU-Messungen am normalen Index mit erfundenen Daten; abschließendes Aufräumen.
+- `tests/room.test.mjs`: zusätzliche Modulroute und Regressionstest für Positionspuffer/Einzelverfolgung.
+
+### Getestet
+
+Eigene Prüfung:
+
+- `npm run typecheck`: bestanden.
+- `npm test`: 29/29 bestanden, alle bisherigen Tests erhalten. Der neue Test prüft die exakten Float32-Renderpositionen, das Durchschalten aller 1.999 Bahnen eines Hubs in beide Richtungen, leeren Fokus und Filterung ausgeblendeter Ziele. Die bisherigen Zähl- und Überlappungstests mit 2.000 Notizen/4.000 Bahnen bleiben grün.
+- `npm audit`: 0 Schwachstellen.
+- `npm run check:lsp`: 13 TypeScript-Dateien, 0 Diagnosen; reguläres `context canceled` beim Shutdown.
+- `node --check scripts/room-benchmark.mjs`, `node --check scripts/room-profile.mjs`: bestanden.
+- `git diff --check`: bestanden.
+- `npm run build` (durch Tests) und `node scripts/room-profile.mjs`: bestanden.
+
+CPU-Profil mit 2.000 erfundenen Notizen und 4.000 Bahnen, fünf aufeinanderfolgenden Läufen im selben Node-Prozess:
+
+| Phase | erster Lauf | Spanne aller fünf Läufe |
+| --- | ---: | ---: |
+| Graphprojektion aus Index | 2,26 ms | 1,39–2,26 ms |
+| Layout | 1,29 ms | 0,44–1,29 ms |
+| Positionspuffer, Nachbarschaften und Hubs | 0,85 ms | 0,48–0,87 ms |
+
+Puffergröße: 32.000 Vertices. Vorherige Indexierung: 5.105,99 ms, weiterhin außerhalb des Raumaufbauzählers. Das Profil verwendet die tatsächlichen Funktionen der Anwendung, **misst jedoch weder DOM noch Three.js-Renderer, GPU-Upload, Instanzmatrizen oder Browserframe**. Es bestätigt deshalb nicht die Zwei-Sekunden-Grenze.
+
+Die Browseranzeige „Aufbau“ behält Start und Ende der bisherigen Messung bei und schließt jetzt auch das Zeichnen des Bildschirmoverlays ein. Zusätzliche Teilzeiten: Layout, Puffer, DOM, Renderer-Konstruktion und kumulierte Vorbereitung der Instanz-/Linienattribute. Letzterer Wert wächst bei weiteren Interaktionen; der Aufbauwert bleibt fest.
+
+### Offen / Nächster Block
+
+**F1 ist noch nicht durch eine Browsermessung geschlossen.** Der optimierte Stand muss mit `npm run build` / `node scripts/room-benchmark.mjs` auf Port 3211 erneut geöffnet werden. KI A protokolliert Aufbau und Teilzeiten für 2.000/4.000 sowie die Bildrate. Die vorherigen 17.788 ms und die realen 1.804 ms stammen aus KI As Prüfung des Ausgangsstands, nicht aus einer Messung dieser Korrektur.
+
+**F2/F3 benötigen visuelle Nachprüfung:** Lesbarkeit der 14-px-Namen, Chipkörper und Ordnerfarben, vollständige isolierte Spur trotz Kreuzungen, direkte Bahnauswahl, große Bühne und Karte unterhalb. Bei sehr langen Namen oder sehr kleinen Fenstern können Bildschirmbeschriftungen weiter überlappen oder am Rand abgeschnitten werden; dies ist keine automatisch geprüfte Kollisionsfreiheit. Auch die Bildrate der neuen Overlayzeichnung ist im Browser offen. Testserverstart/Signal-Aufräumen wurden syntaktisch, nicht durch Öffnen eines Ports geprüft.
+
+Keine unabhängige Abnahme behauptet. Kein laufender Dienst beendet/aktualisiert, keine `launchctl`- oder Access-Skript-Aufrufe, keine Schreibzugriffe auf Gedächtnis oder `.git`. Keine Browserprüfung in dieser Runde. Alle Tests verwenden erfundene Daten im Anwendungsordner.
+
+### Technische Notizen
+
+Uncommittierter Diff auf `9252902654d79ccb36fc0fce5643a2c0542b17f2`, vollständige Dateiliste oben. Kein Commit. Keine neuen Abhängigkeiten, keine Lockfileänderung, keine CSP-Lockerung. AGENTS.md und CLAUDE.md unverändert. Die Einzelverfolgung ist die ausdrücklich angebotene alternative Darstellungsregel für F2b; der Graph selbst und seine Zählung werden nicht reduziert.

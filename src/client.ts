@@ -76,6 +76,7 @@ async function route() {
   const ticket = ++generation;
   const params = new URLSearchParams(location.search);
   const spatial = params.get('view') === '3d';
+  document.body.classList.toggle('spatial-view', spatial);
   room?.activate(false);
   room?.root.remove();
   el<HTMLButtonElement>('view-facts').setAttribute('aria-pressed', String(!spatial));
