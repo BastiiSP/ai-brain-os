@@ -1,54 +1,45 @@
 # AI Brain OS – Anwendungsanweisungen
 
-Stand: 21.10.2026. Geltungsbereich: `ai-brain/ai-brain-os/`.
-Die gemeinsamen Regeln einschließlich KI-Rollen stehen im übergeordneten `../AGENTS.md` und `../CLAUDE.md`; beide bei Session-Start lesen. Dieses Paar ergänzt nur den Anwendungskontext.
+Lokale, anpassbare Wissensoberfläche mit Suche, Lesen, Verknüpfungen, 3D-Ansicht und Ordnernavigation. Anforderungen und freigegebene Lieferstände vor Änderungen bestätigen; geplante Assistenten-, Import- und Umbenennungsfunktionen nicht als implementiert darstellen.
 
-## Entwicklungsstand und Ziel
+## Grenzen und Betrieb
 
-- Lieferstand 1 ist umgesetzt und am 21.10.2026 von KI A unabhängig abgenommen (Commit `b9a96a3`, vor Umschreiben der Commit-Adresse `5df69a4`): lesende lokale Web-Anwendung für das Gedächtnis. Start mit `npm start`, Bedienung und Prüfbefehle in `README.md`. Konzept für die Lieferstände 2–8 am 21.10.2026 von Basti freigegeben; Lieferstände 2–5 am 21.10.2026 umgesetzt und von KI A abgenommen (Ergebnisse in der Projektnotiz). Lieferstände 6–8 sind optional bzw. später.
-- AI Brain OS soll die anpassbare interaktive Ansicht und Bedienoberfläche des vorhandenen Gedächtnisses werden. Bestätigt sind Suche, Verknüpfungen relevanter Dateien, visuelle Aufbereitung, persönliches Gedächtnis, Denkpartner und Arbeitszentrale.
-- Dokumente und Links sollen einfach einbringbar sein; relevantes Wissen später automatisch extrahieren, einordnen und mit vorhandenen Inhalten verknüpfen. Ein gezielter Wissenschat ist vorgesehen.
-- Für Lieferstand 1 von KI A gewählt: lokale Web-Anwendung mit Node.js-LTS und TypeScript, Server nur an `127.0.0.1`, Index nur im Arbeitsspeicher; Begründung in der Projektnotiz. Oberfläche, Verarbeitungsablauf und Architektur späterer Lieferstände sowie die Anbindung von ChatGPT, Codex, Claude und Claude Code sind offen. Keine eingerichtete Verbindung unterstellen.
-- Bestätigte Anforderungen, Vorschläge und offene Entscheidungen getrennt führen. Maßgeblicher Detailkontext und Backlog: `../ai-brain-gedaechtnis/02 Projekte/AI Brain OS.md`.
+- Anwendungscode, Builds und Tests gehören hierher; vorhandene Wissensbestände nicht kopieren oder als zweite Ablage in den Code übernehmen.
+- Der Server bindet ausschließlich an `127.0.0.1`. Der Suchindex bleibt im Arbeitsspeicher.
+- Dokumentinhalte bleiben lesend; der gesondert freigegebene Schreibzugriff betrifft nur `.ai-brain-os/einstellungen.json` im ausgewählten Datenbestand. Weitere Schreibfunktionen brauchen einen ausdrücklichen Auftrag.
+- Dokumente und Links später nachvollziehbar importieren; ein Assistent muss Quellen liefern. Tatsächliche Anbindungen und Berechtigungen prüfen.
+- Dieses Repository ist öffentlich. Testdaten erfinden; keine privaten Dokumente, personenbezogenen oder kundenspezifischen Daten, Zugangsdaten oder lokalen Konfigurationen aufnehmen. `config.local.json` bleibt ignoriert.
+- Getrennte Repositories und Historien erhalten; kein übergreifendes Repository anlegen. Nur auf Auftrag Repositories anlegen, umbenennen oder löschen.
+- Vor jedem Push prüft KI A den tatsächlichen Diff auf private Inhalte. Repo-lokale GitHub-noreply-Adresse für Commits verwenden. Push erst nach KI-A-Prüfung und im autorisierten Umfang.
 
-## Zuständigkeiten und Dateien
+## Befehle
 
-- Anwendung und spätere Build-/Testdateien bleiben hier. Das bestehende Gedächtnis liegt unter `/Users/sebastianprehmus/Workspace/ai-brain/ai-brain-gedaechtnis`.
-- Wissen, Anhänge, Projektnotiz und Daily Notes verbleiben im Gedächtnis; dessen Anweisungen vor dortigen Änderungen lesen. Keine zweite Wissensablage im Anwendungscode anlegen.
-- Eigenes Git-Repository nur für diese Anwendung, Branch `main`, Remote **öffentlich** `https://github.com/BastiiSP/ai-brain-os` (seit 21.10.2026). Das Gedächtnis-Repository und seine Historie bleiben eigenständig und privat.
-- Öffentliches Repository: Testdaten erfunden; keine Inhalte aus dem Gedächtnis, keine personen- oder kundenbezogenen Daten, keine Zugangsdaten oder lokalen Konfigurationen (`config.local.json` bleibt ignoriert). KI A prüft den Diff darauf vor jedem Push. Commits verwenden die repo-lokal eingestellte GitHub-noreply-Adresse, nicht Bastis Arbeitsadresse. Gepusht wird erst nach abgeschlossener Prüfung durch KI A.
+Node-Version gemäß `package.json`; `README.md` erklärt Einrichtung und Bedienung.
+- `npm start` – bauen und lokal starten.
+- `npm run typecheck` – TypeScript prüfen.
+- `npm test` – Build und Tests.
+- `npm run check:lsp` – vorhandene Sprachprüfung.
+Prüfungen passend zur Änderung ausführen; Oberfläche bei sichtbaren Änderungen tatsächlich erproben.
 
-## Entwicklungsaufträge, Prüfung und Übergabe
+## Entwicklungsaufträge und unabhängige Prüfung
 
-Bei Prompt-Anfragen gilt das gemeinsame Verfahren im Hauptordner mit dem lokalen Skill `aufgabenprompt`. Aktuelle Modell-/Effort-Wahl von technischer Rollenverteilung unterscheiden; die zwei unabhängigen KI-Rollen werden durch eine Empfehlung nicht eingerichtet.
+- KI A verantwortet Ziel, Planung, Erfolgskriterien und unabhängige Prüfung; KI B Umsetzung und eigene Prüfung. Beide Rollen im Auftrag nennen. Empfohlen: Claude Code als KI A, Codex als KI B. Automatische Übergaben nicht unterstellen.
+- Auftrag und Übergabe nennen Ziel, Kontext, Grenzen, überprüfbare Kriterien, Nachweise und konkreten Versionsstand (Commit und gegebenenfalls uncommittierten Diff).
+- KI B prüft den Plan vor Umsetzung auf Machbarkeit und Widersprüche und berücksichtigt vorhandenes Tooling. Keine konkurrierenden Änderungen an denselben Dateien.
+- KI A liest selbst den Code des übergebenen Stands, führt relevante Prüfungen aus und erprobt die Oberfläche. Erfolgsberichte ersetzen dies nicht.
+- Relevante Fehler von optionalen Gestaltungswünschen trennen; KI B behebt wesentliche Befunde, KI A prüft erneut. Nach zwei bis drei erfolglosen Korrekturrunden Ursache und Plan neu bewerten.
+- Abschluss erst bei erfüllten Kriterien, bestandenen angemessenen Prüfungen und ohne wesentliche offene Befunde; nicht ausführbare Prüfungen ausdrücklich offenlassen.
+- **Codex-Delegation:** geltenden persönlichen Skill `codex-modellwahl` nutzen, Modell und Effort festlegen und nach Start prüfen.
+- **Codex-Sandbox:** Falls `.git` nicht schreibbar ist, übernimmt KI A den unveränderten Stand, nennt Codex als Umsetzer und prüft den genauen Commit.
+- Bei Prompt-Anfragen das vorhandene persönliche Aufgabenprompt-Verfahren nutzen, explizite Modellvorgaben erhalten und eine Empfehlung nicht mit eingerichteten Rollen verwechseln.
 
-- In jedem Entwicklungsauftrag die im Hauptordner geregelten Rollen KI A (Planung und unabhängige Prüfung) und KI B (Umsetzung und eigene Prüfung) erkennbar benennen. Empfohlen: Claude Code und Codex. Bisher startet Claude Code Codex nicht interaktiv per `codex exec`; eine automatische Verbindung beider Systeme ist nicht eingerichtet.
-- Codex-spezifisch: Die Codex-Sandbox kann nicht in `.git` schreiben. KI A committet den übergebenen Stand dann unverändert, nennt Codex als Umsetzer in der Commit-Nachricht und prüft genau diesen Commit.
-- Vor Umsetzung Plan auf Widersprüche und Machbarkeit prüfen und vorhandenes projektbezogenes Tooling berücksichtigen. Keine gleichzeitigen Änderungen derselben Dateien durch verschiedene Instanzen.
-- Übergabe nennt Ziel, Kontext, Grenzen, Erfolgskriterien, tatsächliche Änderungen, betroffene Dateien, reproduzierbare Prüfschritte und Ergebnisse, verbleibende Befunde sowie den konkreten Versionsstand mit Commit-ID und gegebenenfalls uncommittiertem Diff.
-- KI A prüft Code, Prüfungen und sichtbare Oberfläche selbst am übergebenen Stand. Wesentliche Befunde behebt KI B; KI A prüft erneut. Nicht ausführbare Prüfungen offen lassen; die eigene Prüfung ersetzt keine unabhängige Abnahme.
+## Pflege dieses Dateipaars
 
-## Lieferstände
+Direkte aktuelle Nutzeraufträge haben Vorrang. Vor Regeländerungen beide Dateien lesen und Unterschiede inhaltlich zusammenführen; gültige Regeln erhalten. AGENTS.md und CLAUDE.md unmittelbar gemeinsam ändern und danach mit `cmp` auf Bytegleichheit prüfen. Anbieterunterschiede ausdrücklich kennzeichnen und in beiden Dateien führen. Codex lädt AGENTS.md; Claude Code lädt bei diesem Paar CLAUDE.md.
 
-Lieferstand 1 ist umgesetzt und abgenommen. Für die Lieferstände 2–8 gilt das am 21.10.2026 von Basti freigegebene Konzept in der Projektnotiz (Abschnitt „Konzept Weiterentwicklung – Lieferstände 2 bis 7“, Lieferstand 8 dort angehängt) mit gemeinsamen Grenzen G1–G6, Erfolgskriterien und Auftragsrahmen. Reihenfolge:
+## Abschluss: Claudian-Update
 
-1. Umgesetzt: lesende lokale Ansicht des Gedächtnisses mit Suche, Lesen und Verknüpfungen.
-2. Einfacher Zugang: Autostart, Neustart nach Absturz, Klick im Dock, nur lokal.
-3. Aussehen: Farbwelt Agile Heroes Intelligence, Nunito und Monospace lokal, hell/dunkel.
-4. 3D-Wissensansicht als Platine: Notizen als Chips, Links als Leiterbahnen.
-5. Ordnernavigation: abgestufte Farben, Ausblenden, Anzahl, Reihenfolge, Anheften; einziger Schreibzugriff auf das Gedächtnis ist die Einstellungsdatei `.ai-brain-os/einstellungen.json`.
-6. Optional und später: Assistent mit Quellen (ersetzt den bisherigen Wissenschat).
-7. Später: nachvollziehbarer Import von Dokumenten und Links.
-8. Später festgehalten: Ordner wirklich umbenennen mit Linkpflege, nur auf ausdrücklichen Auftrag.
-
-## Dieses Dateipaar pflegen
-
-Vor Änderungen AGENTS.md und CLAUDE.md hier lesen und vergleichen, unterschiedliche Regeln zusammenführen. Änderungen unmittelbar in beiden Dateien durchführen und anschließend bytegenaue Übereinstimmung prüfen. Werkzeugspezifisches ausdrücklich kennzeichnen. Gemeinsame Regeln im Hauptordner pflegen; ausführliche Entwicklungshistorie in der Projektnotiz.
-
-## Abschluss nach Implementierungsaufgaben
-
-Das Claudian-Update verwenden; in Brainstorming-Gesprächen normal und knapp antworten:
-
+Nach jeder erledigten Implementierungsaufgabe dieses Format mit tatsächlichen Ergebnissen ausgeben; es ersetzt keine unabhängige Prüfung. In Brainstorming-Gesprächen normal und knapp antworten. Eigene und unabhängige Prüfung unterscheiden; verbleibende Befunde und nicht ausführbare Prüfungen sowie Version angeben:
 ```text
 ## Claudian-Update – [Datum]
 
@@ -56,11 +47,11 @@ Das Claudian-Update verwenden; in Brainstorming-Gesprächen normal und knapp ant
 - [Was gebaut / geändert wurde]
 
 ### Getestet
-- [Prüfung und Ergebnis; eigene und unabhängige Prüfung unterscheiden]
+- [Was getestet wurde und Ergebnis]
 
 ### Offen / Nächster Block
-- [Verbleibende Befunde, nicht ausführbare Prüfungen und nächste Schritte]
+- [Was als nächstes kommt]
 
 ### Technische Notizen
-- [Version, wichtige Entscheidungen, neue Pakete oder IDs]
+- [Wichtige Entscheidungen, neue Pakete, IDs etc.]
 ```
